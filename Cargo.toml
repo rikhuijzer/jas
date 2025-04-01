@@ -1,12 +1,13 @@
 [package]
-name = "jarti"
+name = "jas"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/rikhuijzer/jarti"
+repository = "https://github.com/rikhuijzer/jas"
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
+hex = "0.4.3"
 sha2 = "0.11.0-pre.2"
 
 [dev-dependencies]
@@ -15,4 +16,3 @@ predicates = "3"
 pretty_assertions = "1"
 tempfile = "3"
 toml = "0.8"
-hex-literal = "1.0"

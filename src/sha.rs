@@ -3,40 +3,44 @@ use sha2::Sha256;
 use std::path::Path;
 
 #[derive(Debug, PartialEq, Eq)]
-struct Sha256Hash {
-    digest: [u8; 32],
+pub struct Sha256Hash {
+    pub digest: [u8; 32],
 }
 
 impl Sha256Hash {
     pub fn new(digest: [u8; 32]) -> Self {
         Self { digest }
     }
-    
+
     pub fn as_bytes(&self) -> &[u8; 32] {
         &self.digest
     }
+    pub fn from_data(data: &[u8]) -> Sha256Hash {
+        let mut hasher = Sha256::new();
+        hasher.update(data);
+        let digest = hasher.finalize();
+        Sha256Hash::new(digest.into())
+    }
+    pub fn from_text(text: &str) -> Sha256Hash {
+        Self::from_data(text.as_bytes())
+    }
+    pub fn from_path(path: &Path) -> Sha256Hash {
+        let data = std::fs::read(path).unwrap();
+        Self::from_data(&data)
+    }
 }
 
-pub(crate) fn hash(data: &[u8]) -> Sha256Hash {
-    let mut hasher = Sha256::new();
-    hasher.update(data);
-    let digest = hasher.finalize();
-    Sha256Hash::new(digest.into())
-}
-
-pub(crate) fn hash_string(data: &str) -> Sha256Hash {
-    hash(data.as_bytes())
-}
-
-pub(crate) fn hash_path(path: &Path) -> Sha256Hash {
-    let data = std::fs::read(path).unwrap();
-    hash(&data)
+impl PartialEq<str> for Sha256Hash {
+    fn eq(&self, other: &str) -> bool {
+        let other_bytes = hex::decode(other).unwrap();
+        let other = other_bytes.as_slice();
+        self.as_bytes() == other
+    }
 }
 
 #[test]
 fn test_hash() {
-    use hex_literal::hex;
     let text = b"hello world";
-    let expected = hex!("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
-    assert_eq!(hash(text).as_bytes(), &expected);
+    let expected = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
+    assert_eq!(Sha256Hash::from_data(text), *expected);
 }
