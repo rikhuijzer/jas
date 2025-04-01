@@ -14,7 +14,7 @@ pub(crate) struct ShaArgs {
 
 #[derive(Clone, Debug, clap::Subcommand)]
 pub(crate) enum Task {
-    Sha(ShaArgs),
+    Sha256(ShaArgs),
 }
 
 #[derive(Clone, Debug, Parser)]
@@ -28,7 +28,7 @@ fn main() {
     let args = Arguments::parse();
 
     match args.task {
-        Task::Sha(args) => {
+        Task::Sha256(args) => {
             if let Some(path) = &args.path {
                 let path = PathBuf::from(path);
                 if !path.exists() {

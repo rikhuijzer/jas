@@ -10,7 +10,7 @@ fn test_sha() {
     // Obtained via `sha256sum LICENSE`.
     let expected = "399e6f883b8d97f822e8b9662d5377820d46f60dd33e95881e3173cebea6d70c";
     let mut cmd = bin();
-    cmd.arg("sha")
+    cmd.arg("sha256")
         .arg("--path")
         .arg("LICENSE")
         .assert()
