@@ -1,10 +1,18 @@
 use sha2::Digest;
 use sha2::Sha256;
-use std::path::Path;
+use std::fmt;
+use std::fmt::Display;
+use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Sha256Hash {
     pub digest: [u8; 32],
+}
+
+impl Display for Sha256Hash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", hex::encode(self.digest))
+    }
 }
 
 impl Sha256Hash {
@@ -24,7 +32,7 @@ impl Sha256Hash {
     pub fn from_text(text: &str) -> Sha256Hash {
         Self::from_data(text.as_bytes())
     }
-    pub fn from_path(path: &Path) -> Sha256Hash {
+    pub fn from_path(path: &PathBuf) -> Sha256Hash {
         let data = std::fs::read(path).unwrap();
         Self::from_data(&data)
     }
