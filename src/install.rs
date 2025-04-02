@@ -1,8 +1,10 @@
 use crate::InstallArgs;
 use bytes::Bytes;
 use reqwest::get;
+use std::path::Path;
+use std::io::prelude::*;
 use std::fs::File;
-use std::io::Write;
+use flate2::read::GzDecoder;
 use std::path::PathBuf;
 
 /// Guess the asset name for the current platform.
@@ -29,7 +31,7 @@ fn user_agent() -> String {
     format!("jas/{}", env!("CARGO_PKG_VERSION"))
 }
 
-async fn get_gh_asset_url(owner: &str, repo: &str, tag: &str) -> String {
+async fn get_gh_asset_info(owner: &str, repo: &str, tag: &str) -> (String, String) {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
     tracing::debug!("Requesting asset list from {}", url);
     let client = reqwest::Client::new();
@@ -60,7 +62,9 @@ async fn get_gh_asset_url(owner: &str, repo: &str, tag: &str) -> String {
         .collect::<Vec<_>>();
     let index = guess_asset(&names);
     let asset = &assets[index];
-    asset["browser_download_url"].as_str().unwrap().to_string()
+    let url = asset["browser_download_url"].as_str().unwrap().to_string();
+    let name = asset["name"].as_str().unwrap().to_string();
+    (url, name)
 }
 
 fn interpret_path(path: &str) -> PathBuf {
@@ -73,10 +77,57 @@ fn interpret_path(path: &str) -> PathBuf {
 
 fn verify_sha(body: &Bytes, args: &InstallArgs) {
     if let Some(expected) = &args.sha {
-        let actual = crate::sha::Sha256Hash::from_data(&body);
+        let actual = crate::sha::Sha256Hash::from_data(body);
         if expected != &actual {
             panic!("SHA-256 mismatch: expected {expected}, got {actual}");
         }
+    }
+}
+
+/// Unpack a gzipped archive into a directory.
+fn unpack_gz(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
+    if name.ends_with(".tar.gz") {
+        let mut archive = GzDecoder::new(body.as_ref());
+        let archive_dir = dir.join(name.strip_suffix(".tar.gz").unwrap());
+        let mut file = File::create(&archive_dir).unwrap();
+        std::io::copy(&mut archive, &mut file).unwrap();
+        Some(archive_dir)
+    } else {
+        None
+    }
+}
+
+/// Copy the binary from the archive to the target directory.
+fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) {
+    let files = std::fs::read_dir(archive_dir).unwrap();
+    let binary = files.filter_map(|file| {
+        let file = match file {
+            Ok(file) => file,
+            Err(_) => return None,
+        };
+        let path = file.path();
+        if path.is_file() {
+            if let Some(current) = path.file_name() {
+                if current == name {
+                    Some(path)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }).next();
+    if let Some(binary) = binary {
+        let name = binary.file_name().unwrap();
+        let mut src = File::open(&binary).unwrap();
+        let mut dst = File::create(dir.join(name)).unwrap();
+        std::io::copy(&mut src, &mut dst).unwrap();
+        tracing::info!("Placed binary at {dst:?}");
+    } else {
+        panic!("Could not find binary in archive");
     }
 }
 
@@ -90,16 +141,21 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
     } else {
         todo!("Missing tag not yet supported")
     };
-    let url = get_gh_asset_url(owner, repo, tag).await;
+    let (url, name) = get_gh_asset_info(owner, repo, tag).await;
     tracing::info!("Downloading {}", url);
     let response = get(url).await.unwrap();
     let body = response.bytes().await.unwrap();
     verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join(repo);
-    let mut file = File::create(path).unwrap();
-    file.write_all(&body).unwrap();
+    let archive_dir = unpack_gz(&body, &dir, &name);
+    if let Some(archive_dir) = archive_dir {
+        copy_from_archive(&dir, &archive_dir, &name);
+    } else {
+        let path = dir.join(repo);
+        let mut file = File::create(path).unwrap();
+        file.write_all(&body).unwrap();
+    }
 }
 
 /// Install a binary.
