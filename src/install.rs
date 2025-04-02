@@ -106,6 +106,26 @@ fn unpack_gz(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
     }
 }
 
+fn verify_in_path(dir: &Path) {
+    tracing::debug!("Verifying whether {dir:?} is in PATH");
+    let path = std::env::var("PATH").unwrap();
+    let paths = path.split(':').collect::<Vec<_>>();
+    let mut found = false;
+    for p in paths {
+        let p = PathBuf::from(p);
+        if p.exists() && p == dir {
+            tracing::debug!("Found {dir:?} in PATH");
+            found = true;
+            break;
+        }
+    }
+    if !found {
+        tracing::warn!(
+            "Could not find {dir:?} in PATH, you may need to add it to your PATH manually"
+        );
+    }
+}
+
 /// Copy the binary from the archive to the target directory.
 fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) -> PathBuf {
     let files = std::fs::read_dir(archive_dir).unwrap();
@@ -185,6 +205,7 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
         let mut file = File::create(path).unwrap();
         file.write_all(&body).unwrap();
     }
+    verify_in_path(&dir);
 }
 
 /// Install a binary.
