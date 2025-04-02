@@ -1,4 +1,5 @@
 use crate::InstallArgs;
+use bytes::Bytes;
 use reqwest::get;
 use std::fs::File;
 use std::io::Write;
@@ -30,7 +31,7 @@ fn user_agent() -> String {
 
 async fn get_gh_asset_url(owner: &str, repo: &str, tag: &str) -> String {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
-    tracing::info!("Requesting asset list from {}", url);
+    tracing::debug!("Requesting asset list from {}", url);
     let client = reqwest::Client::new();
     let response = client
         .get(url)
@@ -70,6 +71,15 @@ fn interpret_path(path: &str) -> PathBuf {
     }
 }
 
+fn verify_sha(body: &Bytes, args: &InstallArgs) {
+    if let Some(expected) = &args.sha {
+        let actual = crate::sha::Sha256Hash::from_data(&body);
+        if expected != &actual {
+            panic!("SHA-256 mismatch: expected {expected}, got {actual}");
+        }
+    }
+}
+
 async fn install_gh(gh: &str, args: &InstallArgs) {
     let split = gh.split_once('/').unwrap();
     let owner = split.0;
@@ -78,12 +88,15 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
         repo = repo_;
         tag
     } else {
-        todo!("Assumes tag")
+        todo!("Missing tag not yet supported")
     };
     let url = get_gh_asset_url(owner, repo, tag).await;
+    tracing::info!("Downloading {}", url);
     let response = get(url).await.unwrap();
     let body = response.bytes().await.unwrap();
+    verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
+    std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join(repo);
     let mut file = File::create(path).unwrap();
     file.write_all(&body).unwrap();

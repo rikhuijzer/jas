@@ -773,6 +773,7 @@ name = "jas"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",
+ "bytes",
  "clap",
  "hex",
  "predicates",

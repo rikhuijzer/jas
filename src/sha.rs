@@ -38,12 +38,17 @@ impl Sha256Hash {
         Self::from_data(&data)
     }
 }
-
 impl PartialEq<str> for Sha256Hash {
     fn eq(&self, other: &str) -> bool {
         let other_bytes = hex::decode(other).unwrap();
         let other = other_bytes.as_slice();
         self.as_bytes() == other
+    }
+}
+
+impl PartialEq<Sha256Hash> for String {
+    fn eq(&self, other: &Sha256Hash) -> bool {
+        *self == hex::encode(other.as_bytes())
     }
 }
 
