@@ -1,0 +1,83 @@
+name: check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable
+      - run: rustup default stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo test --all-features
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc
+
+  typos:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-typos-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install jas
+        run: |
+          cargo install --debug --path .
+          echo "$HOME/.jas/bin" >> $GITHUB_PATH
+
+      - name: Install typos
+        run: |
+          jas install \
+            --gh crate-ci/typos@v1.31.1 \
+            --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+
+      - name: Run typos
+        run: typos .
+
+  fmt:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable
+      - run: rustup default stable
+      - run: rustup component add rustfmt
+      - run: cargo fmt --all --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable
+      - run: rustup default stable
+      - run: cargo clippy --all --all-features -- -D warnings
