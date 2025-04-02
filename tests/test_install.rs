@@ -18,7 +18,9 @@ fn test_install_gh() {
         .assert()
         .success()
         .stdout(predicate::str::contains(expected_url))
-        .stdout(predicate::str::contains("you may need to add it to your PATH manually"));
+        .stdout(predicate::str::contains(
+            "you may need to add it to your PATH manually",
+        ));
     let path = std::path::Path::new("tests/typos");
     assert!(path.exists());
 
