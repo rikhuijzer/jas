@@ -9,22 +9,31 @@ use tracing::Level;
 
 #[derive(Clone, Debug, Parser)]
 pub(crate) struct ShaArgs {
+    /// The GitHub repository to compute the SHA-256 hash of
     #[arg(short, long)]
     gh: Option<String>,
+    /// The file path to compute the SHA-256 hash of
     #[arg(short, long)]
     path: Option<String>,
 }
 
 #[derive(Clone, Debug, Parser)]
 pub(crate) struct InstallArgs {
+    /// The GitHub repository to install from
     #[arg(long)]
     gh: Option<String>,
+    /// The URL to install from
     #[arg(long)]
     url: Option<String>,
+    /// The SHA-256 hash of the binary to install [default: no verification]
     #[arg(long)]
     sha: Option<String>,
+    /// The directory to install the binary to
     #[arg(long, default_value = "~/.jas/bin")]
     dir: String,
+    /// The name of the binary after installation [default: the repo name or guessed from the url]
+    #[arg(long)]
+    binary_name: Option<String>,
 }
 
 #[derive(Clone, Debug, clap::Subcommand)]

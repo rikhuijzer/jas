@@ -58,6 +58,37 @@ fn test_install_gh() {
 }
 
 #[test]
+fn test_install_gh_no_guesses() {
+    clean_tests_dir("no_guess_typos");
+
+    let mut cmd = bin();
+    let expected_url = "https://github.com/crate-ci/typos/releases/download/v1.31.1/";
+    cmd.arg("--verbose")
+        .arg("install")
+        .arg("--gh")
+        .arg("crate-ci/typos@v1.31.0")
+        .arg("--binary_name=no_guess_typos")
+        .arg("--sha=foo")
+        .arg("--dir")
+        .arg("tests")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(expected_url))
+        .stdout(predicate::str::contains(
+            "you may need to add it to your PATH manually",
+        ));
+    let path = std::path::Path::new("tests/no_guess_typos");
+    assert!(path.exists());
+
+    let mut version_cmd = Command::new(path);
+    version_cmd.arg("--version");
+    version_cmd
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("1.31.1"));
+}
+
+#[test]
 fn test_install_url() {
     clean_tests_dir("trv");
 
