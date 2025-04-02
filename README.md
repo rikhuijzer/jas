@@ -84,8 +84,46 @@ Then, the attacker was able to not only change the latest release, but also tags
 This is a fundamental problem for GitHub Actions.
 It is possible to retroactively change the tags.
 So even clients that pinned to an older version of `changed-files` would start using the malicious version.
+For example, `changed-files` was at v46.0.1 at the time of the attack.
+So, if you would use
+
+```yml
+- uses: tj-actions/changed-files@46
+```
+
+then this would be interpreted by GitHub as `46.0.1` and you would start using the malicious version.
+However, even if you pinned to an older release like `46.0.0`:
+
+```yml
+- name: Get changed files
+  uses: tj-actions/changed-files@46.0.0
+```
+
+you would still not be safe since the attacker has changed the tag for `46.0.0`.
+
+The new/old way to solve this is to use explicit commit hashes.
+For example, `changed-files` now advices to use this:
+
+```yml
+- uses: tj-actions/changed-files@823fcebdb31bb35fdf2229d9f769b400309430d0 # v46
+```
+
+This of course is better, but I personally severly dislike using commit hashes.
+As is clear from the fact that now people typically use a comment to describe which version is being used.
 
 This tool is a workaround for this problem for situations where binaries are available.
+It turns the syntax into:
+
+```yml
+- run: |
+    jas install \
+      --gh crate-ci/typos@v1.31.1 \
+      --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+```
+Now it's clear which version is being used.
 When it downloads a binary, it will verify the SHA-256 checksum.
-If this checksum does not match, the tool will fail and the CI will fail.
-Apart from security benefits, this also ensures that the version that you are using is not quietly updated when you least expect it.
+If this checksum does not match, the tool will fail.
+
+Unlike the GitHub Actions syntax, the version cannot become out of sync with the hash.
+Also, with this method, you know exactly what you run.
+With GitHub Actions, even when the commit hash is pinned, the dependencies can still change if I understand correctly.
