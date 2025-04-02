@@ -150,6 +150,14 @@ fn guess_binary_filename(files: &[PathBuf], filename: &str) -> Option<PathBuf> {
         .next()
 }
 
+fn add_exe_if_needed(path: &Path) -> PathBuf {
+    if cfg!(target_os = "windows") {
+        path.with_extension("exe")
+    } else {
+        path.to_path_buf()
+    }
+}
+
 /// Copy the binary from the archive to the target directory.
 fn copy_from_archive(
     dir: &Path,
@@ -158,14 +166,21 @@ fn copy_from_archive(
     filename: &str,
 ) -> PathBuf {
     let binary = if let Some(filename) = &args.archive_filename {
-        let binary = archive_dir.join(filename);
+        let filename = add_exe_if_needed(Path::new(filename));
+        let binary = archive_dir.join(&filename);
         if binary.exists() {
             binary
         } else {
+            let files = std::fs::read_dir(archive_dir).unwrap();
+            let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+            let files = files
+                .iter()
+                .map(|file| file.display().to_string())
+                .collect::<Vec<_>>();
             panic!(
-                "Could not find binary in archive; file {} does not exist in {}",
-                filename,
-                archive_dir.display()
+                "Could not find binary in archive; file {} not in\n{}",
+                filename.display(),
+                files.join("\n")
             );
         }
     } else {
@@ -173,9 +188,13 @@ fn copy_from_archive(
         let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
         let binary = guess_binary_filename(&files, filename);
         if let Some(binary) = binary {
-            archive_dir.join(binary)
+            add_exe_if_needed(&binary)
         } else {
-            panic!("Could not find binary in archive; specify a binary name with --archive-filename\nAvailable files:\n{}", files.iter().map(|file| file.display().to_string()).collect::<Vec<_>>().join("\n"))
+            let files = files
+                .iter()
+                .map(|file| file.display().to_string())
+                .collect::<Vec<_>>();
+            panic!("Could not find binary in archive; specify a binary name with --archive-filename\nAvailable files:\n{}", files.join("\n"))
         }
     };
     let filename = binary.file_name().unwrap();

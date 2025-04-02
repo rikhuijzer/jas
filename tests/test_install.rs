@@ -38,7 +38,7 @@ fn test_install_gh() {
         .arg("install")
         .arg("--gh=crate-ci/typos@v1.31.1")
         .arg("--dir=tests")
-        .arg("--sha=foo")
+        .arg("--sha=a172195e1b1f1e011b3034913d1c87f0bbf0552a096b4ead0e3fa0620f4329cd")
         .assert()
         .success()
         .stdout(predicate::str::contains(expected_url))
@@ -69,7 +69,10 @@ fn test_install_gh_no_guesses() {
         .arg("--sha=96684058f88bd8343aa992223c9937f399254eb5277f0d297d2ac7b022d990b7")
         .arg("--dir=tests")
         .assert()
-        .failure();
+        .failure()
+        .stderr(predicate::str::contains(
+            "Could not find binary in archive; file this_file_does_not_exist not in",
+        ));
 
     let mut cmd = bin();
     cmd.arg("--verbose")
