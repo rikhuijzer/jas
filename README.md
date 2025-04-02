@@ -21,7 +21,7 @@ Apart from security benefits, this also ensures that the version that you are us
 
 ## Usage in GitHub Actions
 
-For example, to install Typos, you can use the following steps:
+For example, to install Typos v1.31.1, you can use the following job in your GitHub Actions workflow:
 
 ```yaml
 jobs:
@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: cargo install --debug jas
+      - run: cargo install --debug --git https://github.com/rikhuijzer/jas
       - run: echo "$HOME/.jas/bin" >> $GITHUB_PATH
       - run: jas install \
             --gh crate-ci/typos@v1.31.1 \
