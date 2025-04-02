@@ -5,10 +5,6 @@ fn bin() -> Command {
     Command::cargo_bin("jas").unwrap()
 }
 
-fn is_ci() -> bool {
-    std::env::var("CI").unwrap_or_default() == "true"
-}
-
 #[test]
 fn test_install_gh() {
     let mut cmd = bin();
@@ -25,12 +21,10 @@ fn test_install_gh() {
     let path = std::path::Path::new("tests/typos");
     assert!(path.exists());
 
-    if is_ci() {
-        let mut version_cmd = Command::new(path);
-        version_cmd.arg("--version");
-        version_cmd
-            .assert()
-            .success()
-            .stdout(predicate::str::contains("1.31.1"));
-    }
+    let mut version_cmd = Command::new(path);
+    version_cmd.arg("--version");
+    version_cmd
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("1.31.1"));
 }

@@ -1,11 +1,12 @@
 use crate::InstallArgs;
 use bytes::Bytes;
-use reqwest::get;
-use std::path::Path;
-use std::io::prelude::*;
-use std::fs::File;
 use flate2::read::GzDecoder;
+use reqwest::get;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 use std::path::PathBuf;
+use tar::Archive;
 
 /// Guess the asset name for the current platform.
 fn guess_asset(names: &[&str]) -> usize {
@@ -87,10 +88,18 @@ fn verify_sha(body: &Bytes, args: &InstallArgs) {
 /// Unpack a gzipped archive into a directory.
 fn unpack_gz(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
     if name.ends_with(".tar.gz") {
-        let mut archive = GzDecoder::new(body.as_ref());
         let archive_dir = dir.join(name.strip_suffix(".tar.gz").unwrap());
-        let mut file = File::create(&archive_dir).unwrap();
-        std::io::copy(&mut archive, &mut file).unwrap();
+        if archive_dir.exists() {
+            if archive_dir.is_dir() {
+                std::fs::remove_dir_all(&archive_dir).unwrap();
+            } else {
+                std::fs::remove_file(&archive_dir).unwrap();
+            }
+        }
+        std::fs::create_dir_all(&archive_dir).unwrap();
+        let decompressed = GzDecoder::new(body.as_ref());
+        let mut archive = Archive::new(decompressed);
+        archive.unpack(&archive_dir).unwrap();
         Some(archive_dir)
     } else {
         None
@@ -100,33 +109,39 @@ fn unpack_gz(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
 /// Copy the binary from the archive to the target directory.
 fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) -> PathBuf {
     let files = std::fs::read_dir(archive_dir).unwrap();
-    let binary = files.filter_map(|file| {
-        let file = match file {
-            Ok(file) => file,
-            Err(_) => return None,
-        };
-        let path = file.path();
-        if path.is_file() {
-            if let Some(current) = path.file_name() {
-                if current == name {
-                    Some(path)
+    let binary = files
+        .filter_map(|file| {
+            let file = match file {
+                Ok(file) => file,
+                Err(_) => return None,
+            };
+            let path = file.path();
+            if path.is_file() {
+                if let Some(current) = path.file_name() {
+                    let current = current.to_str().unwrap();
+                    tracing::debug!("Checking {current} against {name}");
+                    if name.contains(current) && !name.contains("LICENSE") {
+                        Some(path)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
             } else {
                 None
             }
-        } else {
-            None
-        }
-    }).next();
+        })
+        .next();
     if let Some(binary) = binary {
         let name = binary.file_name().unwrap();
         let mut src = File::open(&binary).unwrap();
-        let mut dst = File::create(dir.join(name)).unwrap();
+        let dst_dir = dir.join(name);
+        let mut dst = File::create(&dst_dir).unwrap();
         std::io::copy(&mut src, &mut dst).unwrap();
-        tracing::info!("Placed binary at {dst:?}");
-        dir.join(name)
+        let dst = dst_dir.display();
+        tracing::info!("Placed binary at {dst}");
+        dst_dir
     } else {
         panic!("Could not find binary in archive");
     }
@@ -136,7 +151,12 @@ fn make_executable(path: &Path) {
     use std::os::unix::fs::PermissionsExt;
     let mut permissions = std::fs::metadata(path).unwrap().permissions();
     permissions.set_mode(0o755);
-    std::fs::set_permissions(path, permissions).unwrap();
+    match std::fs::set_permissions(path, permissions) {
+        Ok(_) => (),
+        Err(e) => {
+            tracing::warn!("Failed to set executable permissions: {e}\nPlease set the executable permissions manually:\nchmod +x {}", path.display());
+        }
+    }
 }
 
 async fn install_gh(gh: &str, args: &InstallArgs) {
