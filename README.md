@@ -7,11 +7,11 @@ By reliably, I mean that you want to specify the SHA-256 checksum so that the bi
 
 ## Features
 
-- 📦 Unpack tarballs.
-- 🔒 Verify the checksum of the downloaded file.
-- 🖥️ Automatically detect the correct asset name for the current platform.
-- 📂 Install the binary to a custom directory.
-- 🔧 Make the binary executable.
+- Unpack tarballs.
+- Verify the checksum of the downloaded file.
+- Automatically detect the correct asset name for the current platform.
+- Install the binary to a custom directory.
+- Make the binary executable.
 
 ## Background
 
