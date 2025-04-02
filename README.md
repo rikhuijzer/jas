@@ -37,7 +37,7 @@ cargo install --debug --git https://github.com/rikhuijzer/jas
 
 ## Usage in GitHub Actions
 
-For example, to install Typos v1.31.1, you can use the following job in your GitHub Actions workflow:
+For example, to install and run [`typos`](https://github.com/crate-ci/typos) v1.31.1, you can use the following job in your GitHub Actions workflow:
 
 ```yaml
 jobs:
@@ -48,12 +48,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: cargo install --debug --git https://github.com/rikhuijzer/jas
-      - run: echo "$HOME/.jas/bin" >> $GITHUB_PATH
-      - run: jas install \
+
+      - name: Install jas
+        run: |
+          cargo install --debug --git https://github.com/rikhuijzer/jas
+          echo "$HOME/.jas/bin" >> $GITHUB_PATH
+
+      - name: Install typos
+        run: |
+          jas install \
             --gh crate-ci/typos@v1.31.1 \
-            --sha 399e6f883b8d97f822e8b9662d5377820d46f60dd33e95881e3173cebea6d70c
-      - run: typos .
+            --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+
+      - name: Run typos
+        run: typos .
 ```
 
 As stated above, the benefit of this is that you can be sure which version of the binary you are using.
