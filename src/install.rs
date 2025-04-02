@@ -126,21 +126,17 @@ fn verify_in_path(dir: &Path) {
     }
 }
 
-fn guess_binary_filename(archive_dir: &Path, filename: &str) -> Option<PathBuf> {
-    let files = std::fs::read_dir(archive_dir).unwrap();
+fn guess_binary_filename(files: &[PathBuf], filename: &str) -> Option<PathBuf> {
     files
+        .iter()
         .filter_map(|file| {
-            let file = match file {
-                Ok(file) => file,
-                Err(_) => return None,
-            };
-            let path = file.path();
+            let path = file;
             if path.is_file() {
                 if let Some(current) = path.file_name() {
                     let current = current.to_str().unwrap();
                     tracing::debug!("Checking {current} against {filename}");
                     if filename.contains(current) && !filename.contains("LICENSE") {
-                        Some(path)
+                        Some(path.clone())
                     } else {
                         None
                     }
@@ -162,26 +158,38 @@ fn copy_from_archive(
     filename: &str,
 ) -> PathBuf {
     let binary = if let Some(filename) = &args.archive_filename {
-        Some(archive_dir.join(filename))
-    } else {
-        guess_binary_filename(archive_dir, filename)
-    };
-    if let Some(binary) = binary {
-        let filename = binary.file_name().unwrap();
-        let mut src = File::open(&binary).unwrap();
-        let dst_path = if let Some(filename) = &args.binary_filename {
-            dir.join(filename)
+        let binary = archive_dir.join(filename);
+        if binary.exists() {
+            binary
         } else {
-            dir.join(filename)
-        };
-        let mut dst = File::create(&dst_path).unwrap();
-        std::io::copy(&mut src, &mut dst).unwrap();
-        let dst = dst_path.display();
-        tracing::info!("Placed binary at {dst}");
-        dst_path
+            panic!(
+                "Could not find binary in archive; file {} does not exist in {}",
+                filename,
+                archive_dir.display()
+            );
+        }
     } else {
-        panic!("Could not find binary in archive; specify a binary name with --archive-filename");
-    }
+        let files = std::fs::read_dir(archive_dir).unwrap();
+        let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+        let binary = guess_binary_filename(&files, filename);
+        if let Some(binary) = binary {
+            archive_dir.join(binary)
+        } else {
+            panic!("Could not find binary in archive; specify a binary name with --archive-filename\nAvailable files:\n{}", files.iter().map(|file| file.display().to_string()).collect::<Vec<_>>().join("\n"))
+        }
+    };
+    let filename = binary.file_name().unwrap();
+    let mut src = File::open(&binary).unwrap();
+    let dst_path = if let Some(filename) = &args.binary_filename {
+        dir.join(filename)
+    } else {
+        dir.join(filename)
+    };
+    let mut dst = File::create(&dst_path).unwrap();
+    std::io::copy(&mut src, &mut dst).unwrap();
+    let dst = dst_path.display();
+    tracing::info!("Placed binary at {dst}");
+    dst_path
 }
 
 fn make_executable(path: &Path) {
