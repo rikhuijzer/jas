@@ -57,10 +57,6 @@ fn test_install_gh() {
         .stdout(predicate::str::contains("1.31.1"));
 }
 
-fn is_ci() -> bool {
-    std::env::var("CI").unwrap_or_default() == "true"
-}
-
 #[test]
 fn test_install_url() {
     clean_tests_dir("trv");
@@ -89,13 +85,10 @@ fn test_install_url() {
     let path = std::path::Path::new("tests/trv");
     assert!(path.exists());
 
-    // Only running in CI because locally the program has no sudo permissions.
-    if is_ci() {
-        let mut version_cmd = Command::new(path);
-        version_cmd.arg("--version");
-        version_cmd
-            .assert()
-            .success()
-            .stdout(predicate::str::contains("0.5.0"));
-    }
+    let mut version_cmd = Command::new(path);
+    version_cmd.arg("--version");
+    version_cmd
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("0.5.0"));
 }

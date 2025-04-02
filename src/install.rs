@@ -186,13 +186,14 @@ async fn install_core(url: &str, args: &InstallArgs, filename: &str, output_name
     verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
     std::fs::create_dir_all(&dir).unwrap();
-    let archive_dir = unpack_gz(&body, &dir, &filename);
+    let archive_dir = unpack_gz(&body, &dir, filename);
     if let Some(archive_dir) = archive_dir {
-        let path = copy_from_archive(&dir, &archive_dir, &filename);
+        let path = copy_from_archive(&dir, &archive_dir, filename);
         make_executable(&path);
     } else {
         let path = dir.join(output_name);
-        let mut file = File::create(path).unwrap();
+        let mut file = File::create(&path).unwrap();
+        make_executable(&path);
         file.write_all(&body).unwrap();
     }
     verify_in_path(&dir);
@@ -209,7 +210,7 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
         todo!("Missing tag not yet supported")
     };
     let (url, name) = get_gh_asset_info(owner, repo, tag).await;
-    install_core(&url, args, &name, &repo).await;
+    install_core(&url, args, &name, repo).await;
 }
 
 fn guess_name(url: &str) -> String {
@@ -221,7 +222,7 @@ fn guess_name(url: &str) -> String {
 async fn install_url(url: &str, args: &InstallArgs) {
     let filename = url.split('/').last().unwrap();
     let output_name = guess_name(url);
-    install_core(url, args, &filename, &output_name).await;
+    install_core(url, args, filename, &output_name).await;
 }
 
 /// Install a binary.
