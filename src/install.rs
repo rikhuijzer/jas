@@ -1,6 +1,5 @@
 use crate::InstallArgs;
 use reqwest::get;
-use std::env::consts::OS;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -28,30 +27,37 @@ fn guess_asset(names: &[&str]) -> usize {
 async fn get_gh_asset_url(owner: &str, repo: &str, tag: &str) -> String {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
     let client = reqwest::Client::new();
-    let response = client.get(url)
+    let response = client
+        .get(url)
         .header("Accept", "application/vnd.github+json")
         .send()
         .await
         .unwrap();
     let body = response.json::<serde_json::Value>().await.unwrap();
     let assets = body["assets"].as_array().unwrap();
-    let names = assets.iter().map(|asset| asset["name"].as_str().unwrap()).collect::<Vec<_>>();
+    let names = assets
+        .iter()
+        .map(|asset| asset["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
     let index = guess_asset(&names);
     let asset = &assets[index];
     asset["browser_download_url"].as_str().unwrap().to_string()
 }
 
 fn interpret_path(path: &str) -> PathBuf {
-    if path.starts_with("~/") {
-        PathBuf::from(std::env::var("HOME").unwrap()).join(&path[2..])
+    if let Some(prefix) = path.strip_prefix("~/") {
+        PathBuf::from(std::env::var("HOME").unwrap()).join(prefix)
     } else {
         PathBuf::from(path)
     }
 }
 
 async fn install_gh(gh: &str, args: &InstallArgs) {
-    let (owner, mut repo) = gh.split_once('/').unwrap();
-    let tag = if let Some((repo, tag)) = repo.split_once('@') {
+    let split = gh.split_once('/').unwrap();
+    let owner = split.0;
+    let mut repo = split.1;
+    let tag = if let Some((repo_, tag)) = repo.split_once('@') {
+        repo = repo_;
         tag
     } else {
         todo!("Assumes tag")

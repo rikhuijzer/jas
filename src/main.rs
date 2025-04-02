@@ -4,6 +4,8 @@ mod sha;
 use clap::Parser;
 use sha::Sha256Hash;
 use std::path::PathBuf;
+use tracing::subscriber::SetGlobalDefaultError;
+use tracing::Level;
 
 #[derive(Clone, Debug, Parser)]
 pub(crate) struct ShaArgs {
@@ -36,11 +38,35 @@ pub(crate) enum Task {
 pub(crate) struct Arguments {
     #[command(subcommand)]
     task: Task,
+
+    #[arg(short, long)]
+    verbose: Option<bool>,
+}
+
+/// Initialize logging with the given level.
+pub fn init_subscriber(level: Level) -> Result<(), SetGlobalDefaultError> {
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(level)
+        .with_test_writer()
+        .without_time()
+        .with_target(false)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)
 }
 
 #[tokio::main]
 async fn main() {
     let args = Arguments::parse();
+    let level = if let Some(verbose) = args.verbose {
+        if verbose {
+            Level::DEBUG
+        } else {
+            Level::INFO
+        }
+    } else {
+        Level::INFO
+    };
+    init_subscriber(level).unwrap();
 
     match args.task {
         Task::Sha(args) => {
