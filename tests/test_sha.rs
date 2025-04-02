@@ -8,7 +8,7 @@ fn bin() -> Command {
 #[test]
 fn test_sha() {
     // Obtained via `sha256sum LICENSE`.
-    let expected = "399e6f883b8d97f822e8b9662d5377820d46f60dd33e95881e3173cebea6d70c";
+    let expected = "3066dd79d02e7449fa493a6ac730ffd63319451b85e528d162d9e4725b8e0982";
     let mut cmd = bin();
     cmd.arg("sha")
         .arg("--path")
