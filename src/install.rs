@@ -212,24 +212,16 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
     install_core(&url, args, &name, &repo).await;
 }
 
-async fn install_url(url: &str, args: &InstallArgs) {
-    tracing::info!("Downloading {}", url);
-    let response = get(url).await.unwrap();
-    let body = response.bytes().await.unwrap();
-    verify_sha(&body, args);
-    let dir = interpret_path(&args.dir);
-    std::fs::create_dir_all(&dir).unwrap();
+fn guess_name(url: &str) -> String {
     let name = url.split('/').last().unwrap();
-    let archive_dir = unpack_gz(&body, &dir, &name);
-    if let Some(archive_dir) = archive_dir {
-        let path = copy_from_archive(&dir, &archive_dir, &name);
-        make_executable(&path);
-    } else {
-        let path = dir.join(name);
-        let mut file = File::create(path).unwrap();
-        file.write_all(&body).unwrap();
-    }
-    verify_in_path(&dir);
+    let name = name.split('-').next().unwrap();
+    name.to_string()
+}
+
+async fn install_url(url: &str, args: &InstallArgs) {
+    let filename = url.split('/').last().unwrap();
+    let output_name = guess_name(url);
+    install_core(url, args, &filename, &output_name).await;
 }
 
 /// Install a binary.
