@@ -36,10 +36,9 @@ fn test_install_gh() {
     let expected_url = "https://github.com/crate-ci/typos/releases/download/v1.31.1/";
     cmd.arg("--verbose")
         .arg("install")
-        .arg("--gh")
-        .arg("crate-ci/typos@v1.31.1")
-        .arg("--dir")
-        .arg("tests")
+        .arg("--gh=crate-ci/typos@v1.31.1")
+        .arg("--dir=tests")
+        .arg("--sha=foo")
         .assert()
         .success()
         .stdout(predicate::str::contains(expected_url))
@@ -62,21 +61,27 @@ fn test_install_gh_no_guesses() {
     clean_tests_dir("no_guess_typos");
 
     let mut cmd = bin();
-    let expected_url = "https://github.com/crate-ci/typos/releases/download/v1.31.1/";
     cmd.arg("--verbose")
         .arg("install")
-        .arg("--gh")
-        .arg("crate-ci/typos@v1.31.0")
-        .arg("--binary_name=no_guess_typos")
-        .arg("--sha=foo")
-        .arg("--dir")
-        .arg("tests")
+        .arg("--gh=crate-ci/typos@v1.31.0")
+        .arg("--archive-filename=this_file_does_not_exist")
+        .arg("--binary-filename=no_guess_typos")
+        .arg("--sha=96684058f88bd8343aa992223c9937f399254eb5277f0d297d2ac7b022d990b7")
+        .arg("--dir=tests")
         .assert()
-        .success()
-        .stdout(predicate::str::contains(expected_url))
-        .stdout(predicate::str::contains(
-            "you may need to add it to your PATH manually",
-        ));
+        .failure();
+
+    let mut cmd = bin();
+    cmd.arg("--verbose")
+        .arg("install")
+        .arg("--gh=crate-ci/typos@v1.31.0")
+        .arg("--archive-filename=typos")
+        .arg("--binary-filename=no_guess_typos")
+        .arg("--sha=96684058f88bd8343aa992223c9937f399254eb5277f0d297d2ac7b022d990b7")
+        .arg("--dir=tests")
+        .assert()
+        .success();
+
     let path = std::path::Path::new("tests/no_guess_typos");
     assert!(path.exists());
 
@@ -85,7 +90,7 @@ fn test_install_gh_no_guesses() {
     version_cmd
         .assert()
         .success()
-        .stdout(predicate::str::contains("1.31.1"));
+        .stdout(predicate::str::contains("1.31.0"));
 }
 
 #[test]

@@ -126,10 +126,9 @@ fn verify_in_path(dir: &Path) {
     }
 }
 
-/// Copy the binary from the archive to the target directory.
-fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) -> PathBuf {
+fn guess_binary_filename(archive_dir: &Path, filename: &str) -> Option<PathBuf> {
     let files = std::fs::read_dir(archive_dir).unwrap();
-    let binary = files
+    files
         .filter_map(|file| {
             let file = match file {
                 Ok(file) => file,
@@ -139,8 +138,8 @@ fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) -> PathBuf {
             if path.is_file() {
                 if let Some(current) = path.file_name() {
                     let current = current.to_str().unwrap();
-                    tracing::debug!("Checking {current} against {name}");
-                    if name.contains(current) && !name.contains("LICENSE") {
+                    tracing::debug!("Checking {current} against {filename}");
+                    if filename.contains(current) && !filename.contains("LICENSE") {
                         Some(path)
                     } else {
                         None
@@ -152,18 +151,36 @@ fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) -> PathBuf {
                 None
             }
         })
-        .next();
-    if let Some(binary) = binary {
-        let name = binary.file_name().unwrap();
-        let mut src = File::open(&binary).unwrap();
-        let dst_dir = dir.join(name);
-        let mut dst = File::create(&dst_dir).unwrap();
-        std::io::copy(&mut src, &mut dst).unwrap();
-        let dst = dst_dir.display();
-        tracing::info!("Placed binary at {dst}");
-        dst_dir
+        .next()
+}
+
+/// Copy the binary from the archive to the target directory.
+fn copy_from_archive(
+    dir: &Path,
+    archive_dir: &Path,
+    args: &InstallArgs,
+    filename: &str,
+) -> PathBuf {
+    let binary = if let Some(filename) = &args.archive_filename {
+        Some(archive_dir.join(filename))
     } else {
-        panic!("Could not find binary in archive");
+        guess_binary_filename(archive_dir, filename)
+    };
+    if let Some(binary) = binary {
+        let filename = binary.file_name().unwrap();
+        let mut src = File::open(&binary).unwrap();
+        let dst_path = if let Some(filename) = &args.binary_filename {
+            dir.join(filename)
+        } else {
+            dir.join(filename)
+        };
+        let mut dst = File::create(&dst_path).unwrap();
+        std::io::copy(&mut src, &mut dst).unwrap();
+        let dst = dst_path.display();
+        tracing::info!("Placed binary at {dst}");
+        dst_path
+    } else {
+        panic!("Could not find binary in archive; specify a binary name with --archive-filename");
     }
 }
 
@@ -188,7 +205,7 @@ async fn install_core(url: &str, args: &InstallArgs, filename: &str, output_name
     std::fs::create_dir_all(&dir).unwrap();
     let archive_dir = unpack_gz(&body, &dir, filename);
     if let Some(archive_dir) = archive_dir {
-        let path = copy_from_archive(&dir, &archive_dir, filename);
+        let path = copy_from_archive(&dir, &archive_dir, args, filename);
         make_executable(&path);
     } else {
         let path = dir.join(output_name);

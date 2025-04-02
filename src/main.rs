@@ -33,7 +33,10 @@ pub(crate) struct InstallArgs {
     dir: String,
     /// The name of the binary after installation [default: the repo name or guessed from the url]
     #[arg(long)]
-    binary_name: Option<String>,
+    binary_filename: Option<String>,
+    /// The name of the binary in the archive [default: use simple heuristic to guess]
+    #[arg(long)]
+    archive_filename: Option<String>,
 }
 
 #[derive(Clone, Debug, clap::Subcommand)]
