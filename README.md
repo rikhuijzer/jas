@@ -102,13 +102,13 @@ However, even if you pinned to an older release like `46.0.0`:
 you would still not be safe since the attacker has changed the tag for `46.0.0`.
 
 The new/old way to solve this is to use explicit commit hashes.
-For example, `changed-files` now advices to use this:
+For example, `changed-files` now advises to use this:
 
 ```yml
 - uses: tj-actions/changed-files@823fcebdb31bb35fdf2229d9f769b400309430d0 # v46
 ```
 
-This of course is better, but I personally severly dislike using commit hashes.
+This of course is better, but I personally severely dislike using commit hashes.
 As is clear from the fact that now people typically use a comment to describe which version is being used.
 
 This tool is a workaround for this problem for situations where binaries are available.
