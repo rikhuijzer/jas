@@ -20,6 +20,8 @@ pub(crate) struct InstallArgs {
     #[arg(long)]
     gh: Option<String>,
     #[arg(long)]
+    url: Option<String>,
+    #[arg(long)]
     sha: Option<String>,
     #[arg(long, default_value = "~/.jas/bin")]
     dir: String,

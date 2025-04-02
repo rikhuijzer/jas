@@ -179,6 +179,25 @@ fn make_executable(path: &Path) {
     }
 }
 
+async fn install_core(url: &str, args: &InstallArgs, filename: &str, output_name: &str) {
+    tracing::info!("Downloading {}", url);
+    let response = get(url).await.unwrap();
+    let body = response.bytes().await.unwrap();
+    verify_sha(&body, args);
+    let dir = interpret_path(&args.dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let archive_dir = unpack_gz(&body, &dir, &filename);
+    if let Some(archive_dir) = archive_dir {
+        let path = copy_from_archive(&dir, &archive_dir, &filename);
+        make_executable(&path);
+    } else {
+        let path = dir.join(output_name);
+        let mut file = File::create(path).unwrap();
+        file.write_all(&body).unwrap();
+    }
+    verify_in_path(&dir);
+}
+
 async fn install_gh(gh: &str, args: &InstallArgs) {
     let split = gh.split_once('/').unwrap();
     let owner = split.0;
@@ -190,18 +209,23 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
         todo!("Missing tag not yet supported")
     };
     let (url, name) = get_gh_asset_info(owner, repo, tag).await;
+    install_core(&url, args, &name, &repo).await;
+}
+
+async fn install_url(url: &str, args: &InstallArgs) {
     tracing::info!("Downloading {}", url);
     let response = get(url).await.unwrap();
     let body = response.bytes().await.unwrap();
     verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
     std::fs::create_dir_all(&dir).unwrap();
+    let name = url.split('/').last().unwrap();
     let archive_dir = unpack_gz(&body, &dir, &name);
     if let Some(archive_dir) = archive_dir {
         let path = copy_from_archive(&dir, &archive_dir, &name);
         make_executable(&path);
     } else {
-        let path = dir.join(repo);
+        let path = dir.join(name);
         let mut file = File::create(path).unwrap();
         file.write_all(&body).unwrap();
     }
@@ -212,6 +236,8 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
 pub(crate) async fn install(args: &InstallArgs) {
     if let Some(gh) = &args.gh {
         install_gh(gh, args).await;
+    } else if let Some(url) = &args.url {
+        install_url(url, args).await;
     } else {
         todo!()
     }
