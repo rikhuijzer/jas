@@ -46,9 +46,10 @@ jobs:
           key: ${{ runner.os }}-cargo-typos-${{ hashFiles('**/Cargo.lock') }}
       - run: cargo install --debug --path .
       - run: echo "$HOME/.jas/bin" >> $GITHUB_PATH
-      - run: jas install \
-            --gh=crate-ci/typos@v1.31.1 \
-            --sha=399e6f883b8d97f822e8b9662d5377820d46f60dd33e95881e3173cebea6d70c
+      - run: |
+          jas install \
+            --gh crate-ci/typos@v1.31.1 \
+            --sha 399e6f883b8d97f822e8b9662d5377820d46f60dd33e95881e3173cebea6d70c
       - run: typos .
 
   fmt:
