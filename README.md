@@ -3,31 +3,9 @@
 Just an installer.
 
 This tool is meant to be used in situations where you want to reliably install a binary.
-By reliably, I mean that you want to specify the SHA-256 checksum so that the binary can not be changed without you noticing.
-
-## Features
-
-- Unpack tarballs.
-- Verify the checksum of the downloaded file.
-- Automatically detect the correct asset name for the current platform.
-- Install the binary to a custom directory.
-- Make the binary executable.
-
-## Background
-
-This tool is primarily intended to be used in CI as a workaround for GitHub Actions's poor security guarantees.
-For example, recently the `tj-actions/changed-files` Action caused many repositories to leak their secrets.
-As with many problems, multiple things have to go wrong for this to happen.
-First, someone gained access to `changed-files` and [inserted malicious code into it](https://github.com/tj-actions/changed-files/issues/2464#issuecomment-2727020537).
-Then, the attacker was able to not only change the latest release, but also tags [for older releases](https://github.com/tj-actions/changed-files/issues/2463).
-This is a fundamental problem for GitHub Actions.
-It is possible to retroactively change the tags.
-So even clients that pinned to an older version of `changed-files` would start using the malicious version.
-
-This tool is a workaround for this problem for situations where binaries are available.
-When it downloads a binary, it will verify the SHA-256 checksum.
-If this checksum does not match, the tool will fail and the CI will fail.
-Apart from security benefits, this also ensures that the version that you are using is not quietly updated when you least expect it.
+By reliably, I mean that you want to specify the SHA-256 checksum so that you can be sure that you are using the correct binary.
+I wrote this tool in response to yet another GitHub Action security issue.
+See the [Background](#background) section for more details.
 
 ## Installation
 
@@ -95,3 +73,19 @@ Or if you already have the file locally:
 ```bash
 jas sha --path just-1.40.0.tar.gz
 ```
+
+## Background
+
+This tool is primarily intended to be used in CI as a workaround for GitHub Actions's poor security guarantees.
+For example, recently the `tj-actions/changed-files` Action caused many repositories to leak their secrets.
+As with many problems, multiple things have to go wrong for this to happen.
+First, someone gained access to `changed-files` and [inserted malicious code into it](https://github.com/tj-actions/changed-files/issues/2464#issuecomment-2727020537).
+Then, the attacker was able to not only change the latest release, but also tags [for older releases](https://github.com/tj-actions/changed-files/issues/2463).
+This is a fundamental problem for GitHub Actions.
+It is possible to retroactively change the tags.
+So even clients that pinned to an older version of `changed-files` would start using the malicious version.
+
+This tool is a workaround for this problem for situations where binaries are available.
+When it downloads a binary, it will verify the SHA-256 checksum.
+If this checksum does not match, the tool will fail and the CI will fail.
+Apart from security benefits, this also ensures that the version that you are using is not quietly updated when you least expect it.
