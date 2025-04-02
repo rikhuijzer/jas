@@ -15,7 +15,7 @@ By reliably, I mean that you want to specify the SHA-256 checksum so that the bi
 
 ## Background
 
-This tool is primarly intended to be used in CI as a workaround for GitHub Actions's poor security guarantees.
+This tool is primarily intended to be used in CI as a workaround for GitHub Actions's poor security guarantees.
 For example, recently the `tj-actions/changed-files` Action caused many repositories to leak their secrets.
 As with many problems, multiple things have to go wrong for this to happen.
 First, someone gained access to `changed-files` and [inserted malicious code into it](https://github.com/tj-actions/changed-files/issues/2464#issuecomment-2727020537).
