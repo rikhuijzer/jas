@@ -7,7 +7,7 @@ Just an installer.
 To install a binary from a GitHub release, you can use the following command:
 
 ```bash
-jas install --github casey/just@1.40.0
+jas install --gh casey/just@1.40.0
 ```
 
 By default, this will store the binary in `~/.jas/bin`.
@@ -16,19 +16,19 @@ You can change this by using the `--output` flag.
 You can also specify the SHA of the release you want to install.
 
 ```bash
-jas install --github casey/just@1.40.0 --sha256 1234567890
+jas install --gh casey/just@1.40.0 --sha256 1234567890
 ```
 
 To get this SHA, you can use:
 
 ```bash
-jas sha256 --github casey/just@1.40.0
+jas sha --gh casey/just@1.40.0
 ```
 
 Or if you already have the file locally:
 
 ```bash
-jas sha256 --path just-1.40.0.tar.gz
+jas sha --path just-1.40.0.tar.gz
 ```
 
 ## Installation
