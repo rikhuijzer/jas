@@ -56,7 +56,12 @@ async fn get_gh_asset_info(owner: &str, repo: &str, tag: &str) -> (String, Strin
             panic!("Error parsing asset list: {e}\nGot: {bytes:?}");
         }
     };
-    let assets = body["assets"].as_array().unwrap();
+    let assets = match body["assets"].as_array() {
+        Some(assets) => assets,
+        None => {
+            panic!("Unexpected response from GitHub: {body:?}");
+        }
+    };
     let names = assets
         .iter()
         .map(|asset| asset["name"].as_str().unwrap())
@@ -126,22 +131,17 @@ fn verify_in_path(dir: &Path) {
     }
 }
 
-/// Copy the binary from the archive to the target directory.
-fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) -> PathBuf {
-    let files = std::fs::read_dir(archive_dir).unwrap();
-    let binary = files
+fn guess_binary_filename(files: &[PathBuf], filename: &str) -> Option<PathBuf> {
+    files
+        .iter()
         .filter_map(|file| {
-            let file = match file {
-                Ok(file) => file,
-                Err(_) => return None,
-            };
-            let path = file.path();
+            let path = file;
             if path.is_file() {
                 if let Some(current) = path.file_name() {
                     let current = current.to_str().unwrap();
-                    tracing::debug!("Checking {current} against {name}");
-                    if name.contains(current) && !name.contains("LICENSE") {
-                        Some(path)
+                    tracing::debug!("Checking {current} against {filename}");
+                    if filename.contains(current) && !filename.contains("LICENSE") {
+                        Some(path.clone())
                     } else {
                         None
                     }
@@ -152,19 +152,68 @@ fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) -> PathBuf {
                 None
             }
         })
-        .next();
-    if let Some(binary) = binary {
-        let name = binary.file_name().unwrap();
-        let mut src = File::open(&binary).unwrap();
-        let dst_dir = dir.join(name);
-        let mut dst = File::create(&dst_dir).unwrap();
-        std::io::copy(&mut src, &mut dst).unwrap();
-        let dst = dst_dir.display();
-        tracing::info!("Placed binary at {dst}");
-        dst_dir
+        .next()
+}
+
+fn add_exe_if_needed(path: &Path) -> PathBuf {
+    if cfg!(target_os = "windows") {
+        path.with_extension("exe")
     } else {
-        panic!("Could not find binary in archive");
+        path.to_path_buf()
     }
+}
+
+/// Copy the binary from the archive to the target directory.
+fn copy_from_archive(
+    dir: &Path,
+    archive_dir: &Path,
+    args: &InstallArgs,
+    filename: &str,
+) -> PathBuf {
+    let binary = if let Some(filename) = &args.archive_filename {
+        let filename = add_exe_if_needed(Path::new(filename));
+        let binary = archive_dir.join(&filename);
+        if binary.exists() {
+            binary
+        } else {
+            let files = std::fs::read_dir(archive_dir).unwrap();
+            let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+            let files = files
+                .iter()
+                .map(|file| file.display().to_string())
+                .collect::<Vec<_>>();
+            panic!(
+                "Could not find binary in archive; file {} not in\n{}",
+                filename.display(),
+                files.join("\n")
+            );
+        }
+    } else {
+        let files = std::fs::read_dir(archive_dir).unwrap();
+        let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+        let binary = guess_binary_filename(&files, filename);
+        if let Some(binary) = binary {
+            add_exe_if_needed(&binary)
+        } else {
+            let files = files
+                .iter()
+                .map(|file| file.display().to_string())
+                .collect::<Vec<_>>();
+            panic!("Could not find binary in archive; specify a binary name with --archive-filename\nAvailable files:\n{}", files.join("\n"))
+        }
+    };
+    let filename = binary.file_name().unwrap();
+    let mut src = File::open(&binary).unwrap();
+    let dst_path = if let Some(filename) = &args.binary_filename {
+        dir.join(filename)
+    } else {
+        dir.join(filename)
+    };
+    let mut dst = File::create(&dst_path).unwrap();
+    std::io::copy(&mut src, &mut dst).unwrap();
+    let dst = dst_path.display();
+    tracing::info!("Placed binary at {dst}");
+    dst_path
 }
 
 fn make_executable(path: &Path) {
@@ -188,7 +237,7 @@ async fn install_core(url: &str, args: &InstallArgs, filename: &str, output_name
     std::fs::create_dir_all(&dir).unwrap();
     let archive_dir = unpack_gz(&body, &dir, filename);
     if let Some(archive_dir) = archive_dir {
-        let path = copy_from_archive(&dir, &archive_dir, filename);
+        let path = copy_from_archive(&dir, &archive_dir, args, filename);
         make_executable(&path);
     } else {
         let path = dir.join(output_name);
