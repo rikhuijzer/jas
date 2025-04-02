@@ -98,7 +98,7 @@ fn unpack_gz(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
 }
 
 /// Copy the binary from the archive to the target directory.
-fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) {
+fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) -> PathBuf {
     let files = std::fs::read_dir(archive_dir).unwrap();
     let binary = files.filter_map(|file| {
         let file = match file {
@@ -126,9 +126,17 @@ fn copy_from_archive(dir: &Path, archive_dir: &PathBuf, name: &str) {
         let mut dst = File::create(dir.join(name)).unwrap();
         std::io::copy(&mut src, &mut dst).unwrap();
         tracing::info!("Placed binary at {dst:?}");
+        dir.join(name)
     } else {
         panic!("Could not find binary in archive");
     }
+}
+
+fn make_executable(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+    let mut permissions = std::fs::metadata(path).unwrap().permissions();
+    permissions.set_mode(0o755);
+    std::fs::set_permissions(path, permissions).unwrap();
 }
 
 async fn install_gh(gh: &str, args: &InstallArgs) {
@@ -150,7 +158,8 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
     std::fs::create_dir_all(&dir).unwrap();
     let archive_dir = unpack_gz(&body, &dir, &name);
     if let Some(archive_dir) = archive_dir {
-        copy_from_archive(&dir, &archive_dir, &name);
+        let path = copy_from_archive(&dir, &archive_dir, &name);
+        make_executable(&path);
     } else {
         let path = dir.join(repo);
         let mut file = File::create(path).unwrap();
