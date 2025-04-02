@@ -1,7 +1,29 @@
 use crate::InstallArgs;
 use reqwest::get;
+use std::env::consts::OS;
+use std::fs::File;
 
-async fn get_gh_release(owner: &str, repo: &str, tag: &str) -> String {
+/// Guess the asset name for the current platform.
+fn guess_asset(names: &[&str]) -> usize {
+    fn searcher(name: &&str) -> bool {
+        if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
+            name.contains("linux") && name.contains("x86_64")
+        } else if cfg!(target_os = "macos") && cfg!(target_arch = "x86_64") {
+            name.contains("macos") && name.contains("x86_64")
+        } else if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+            name.contains("macos") && name.contains("arm64")
+        } else if cfg!(target_os = "linux") && cfg!(target_arch = "aarch64") {
+            name.contains("linux") && name.contains("arm64")
+        } else if cfg!(target_os = "windows") && cfg!(target_arch = "x86_64") {
+            name.contains("windows") && name.contains("x86_64")
+        } else {
+            panic!("Unsupported platform: {}", name);
+        }
+    }
+    names.iter().position(searcher).expect("No asset found")
+}
+
+async fn get_gh_asset_url(owner: &str, repo: &str, tag: &str) -> String {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
     let client = reqwest::Client::new();
     let response = client.get(url)
@@ -10,8 +32,11 @@ async fn get_gh_release(owner: &str, repo: &str, tag: &str) -> String {
         .await
         .unwrap();
     let body = response.json::<serde_json::Value>().await.unwrap();
-
-    todo!()
+    let assets = body["assets"].as_array().unwrap();
+    let names = assets.iter().map(|asset| asset["name"].as_str().unwrap()).collect::<Vec<_>>();
+    let index = guess_asset(&names);
+    let asset = &assets[index];
+    asset["browser_download_url"].as_str().unwrap().to_string()
 }
 
 async fn install_gh(gh: &str, args: &InstallArgs) {
@@ -21,10 +46,12 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
     } else {
         todo!("Assumes tag")
     };
-    let url = format!("https://github.com/{owner}/{repo}/releases/tag/{tag}");
+    let url = get_gh_asset_url(owner, repo, tag).await;
     let response = get(url).await.unwrap();
-    let body = response.json::<serde_json::Value>().await.unwrap();
-    let 
+    let body = response.bytes().await.unwrap();
+    let path = args.path.unwrap();
+    let mut file = File::create(path).unwrap();
+    file.write_all(&body).unwrap();
 }
 
 /// Install a binary.
