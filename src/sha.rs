@@ -29,6 +29,7 @@ impl Sha256Hash {
         let digest = hasher.finalize();
         Sha256Hash::new(digest.into())
     }
+    #[allow(dead_code)]
     pub fn from_text(text: &str) -> Sha256Hash {
         Self::from_data(text.as_bytes())
     }
