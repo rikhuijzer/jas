@@ -56,7 +56,12 @@ async fn get_gh_asset_info(owner: &str, repo: &str, tag: &str) -> (String, Strin
             panic!("Error parsing asset list: {e}\nGot: {bytes:?}");
         }
     };
-    let assets = body["assets"].as_array().unwrap();
+    let assets = match body["assets"].as_array() {
+        Some(assets) => assets,
+        None => {
+            panic!("Unexpected response from GitHub: {body:?}");
+        }
+    };
     let names = assets
         .iter()
         .map(|asset| asset["name"].as_str().unwrap())
