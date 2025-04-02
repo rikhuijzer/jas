@@ -10,11 +10,11 @@ fn guess_asset(names: &[&str]) -> usize {
         if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
             name.contains("linux") && name.contains("x86_64")
         } else if cfg!(target_os = "macos") && cfg!(target_arch = "x86_64") {
-            name.contains("macos") && name.contains("x86_64")
+            (name.contains("macos") || name.contains("darwin")) && name.contains("x86_64")
         } else if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
-            name.contains("macos") && name.contains("arm64")
+            (name.contains("macos") || name.contains("darwin")) && name.contains("aarch64")
         } else if cfg!(target_os = "linux") && cfg!(target_arch = "aarch64") {
-            name.contains("linux") && name.contains("arm64")
+            name.contains("linux") && name.contains("aarch64")
         } else if cfg!(target_os = "windows") && cfg!(target_arch = "x86_64") {
             name.contains("windows") && name.contains("x86_64")
         } else {
@@ -24,16 +24,34 @@ fn guess_asset(names: &[&str]) -> usize {
     names.iter().position(searcher).expect("No asset found")
 }
 
+fn user_agent() -> String {
+    format!("jas/{}", env!("CARGO_PKG_VERSION"))
+}
+
 async fn get_gh_asset_url(owner: &str, repo: &str, tag: &str) -> String {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
+    tracing::info!("Requesting asset list from {}", url);
     let client = reqwest::Client::new();
     let response = client
         .get(url)
         .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header("User-Agent", user_agent())
         .send()
-        .await
-        .unwrap();
-    let body = response.json::<serde_json::Value>().await.unwrap();
+        .await;
+    let response = match response {
+        Ok(response) => response,
+        Err(e) => {
+            panic!("Error requesting asset list: {}", e);
+        }
+    };
+    let bytes = response.bytes().await.unwrap();
+    let body = match serde_json::from_slice::<serde_json::Value>(&bytes) {
+        Ok(body) => body,
+        Err(e) => {
+            panic!("Error parsing asset list: {e}\nGot: {bytes:?}");
+        }
+    };
     let assets = body["assets"].as_array().unwrap();
     let names = assets
         .iter()

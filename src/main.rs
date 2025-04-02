@@ -17,11 +17,11 @@ pub(crate) struct ShaArgs {
 
 #[derive(Clone, Debug, Parser)]
 pub(crate) struct InstallArgs {
-    #[arg(short, long)]
+    #[arg(long)]
     gh: Option<String>,
-    #[arg(short, long)]
+    #[arg(long)]
     sha: Option<String>,
-    #[arg(short, long, default_value = "~/.jas/bin")]
+    #[arg(long, default_value = "~/.jas/bin")]
     dir: String,
 }
 
@@ -36,11 +36,11 @@ pub(crate) enum Task {
 #[derive(Clone, Debug, Parser)]
 #[command(author, version, about)]
 pub(crate) struct Arguments {
+    #[arg(long)]
+    verbose: bool,
+
     #[command(subcommand)]
     task: Task,
-
-    #[arg(short, long)]
-    verbose: Option<bool>,
 }
 
 /// Initialize logging with the given level.
@@ -57,12 +57,8 @@ pub fn init_subscriber(level: Level) -> Result<(), SetGlobalDefaultError> {
 #[tokio::main]
 async fn main() {
     let args = Arguments::parse();
-    let level = if let Some(verbose) = args.verbose {
-        if verbose {
-            Level::DEBUG
-        } else {
-            Level::INFO
-        }
+    let level = if args.verbose {
+        Level::DEBUG
     } else {
         Level::INFO
     };

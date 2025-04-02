@@ -6,15 +6,15 @@ fn bin() -> Command {
 }
 
 #[test]
-fn test_install_github() {
+fn test_install_gh() {
     let mut cmd = bin();
     let expected_url = "https://github.com/crate-ci/typos/releases/download/v1.31.1/typos-v1.31.1-aarch64-apple-darwin.tar.gz";
-    cmd.arg("install")
+    cmd.arg("--verbose")
+        .arg("install")
         .arg("--gh")
         .arg("crate-ci/typos@v1.31.1")
         .arg("--dir")
         .arg("tests")
-        .arg("--verbose")
         .assert()
         .success()
         .stdout(predicate::str::contains(expected_url));
