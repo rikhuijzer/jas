@@ -32,13 +32,18 @@ fn clean_tests_dir(prefix: &str) {
 fn test_install_gh() {
     clean_tests_dir("typos");
 
+    let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        "a172195e1b1f1e011b3034913d1c87f0bbf0552a096b4ead0e3fa0620f4329cd"
+    } else {
+        "f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993"
+    };
     let mut cmd = bin();
     let expected_url = "https://github.com/crate-ci/typos/releases/download/v1.31.1/";
     cmd.arg("--verbose")
         .arg("install")
         .arg("--gh=crate-ci/typos@v1.31.1")
         .arg("--dir=tests")
-        .arg("--sha=a172195e1b1f1e011b3034913d1c87f0bbf0552a096b4ead0e3fa0620f4329cd")
+        .arg(format!("--sha={sha}"))
         .assert()
         .success()
         .stdout(predicate::str::contains(expected_url))
@@ -60,13 +65,18 @@ fn test_install_gh() {
 fn test_install_gh_no_guesses() {
     clean_tests_dir("no_guess_typos");
 
+    let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        "96684058f88bd8343aa992223c9937f399254eb5277f0d297d2ac7b022d990b7"
+    } else {
+        "3b11f5e3de56ecdc13fedc9425f201c83bd2dd045df938a166d7fed85d238faf"
+    };
     let mut cmd = bin();
     cmd.arg("--verbose")
         .arg("install")
         .arg("--gh=crate-ci/typos@v1.31.0")
         .arg("--archive-filename=this_file_does_not_exist")
         .arg("--binary-filename=no_guess_typos")
-        .arg("--sha=96684058f88bd8343aa992223c9937f399254eb5277f0d297d2ac7b022d990b7")
+        .arg(format!("--sha={sha}"))
         .arg("--dir=tests")
         .assert()
         .failure()
@@ -80,7 +90,7 @@ fn test_install_gh_no_guesses() {
         .arg("--gh=crate-ci/typos@v1.31.0")
         .arg("--archive-filename=typos")
         .arg("--binary-filename=no_guess_typos")
-        .arg("--sha=96684058f88bd8343aa992223c9937f399254eb5277f0d297d2ac7b022d990b7")
+        .arg(format!("--sha={sha}"))
         .arg("--dir=tests")
         .assert()
         .success();
