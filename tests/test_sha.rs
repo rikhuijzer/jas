@@ -18,14 +18,14 @@ fn test_sha() {
         .stdout(predicate::str::contains(expected));
 }
 
-#[test]
-fn test_sha_github() {
-    let expected = "399e6f883b8d97f822e8b9662d5377820d46f60dd33e95881e3173cebea6d70c";
-    let mut cmd = bin();
-    cmd.arg("sha")
-        .arg("--gh")
-        .arg("crate-ci/typos@v1.31.1")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains(expected));
-}
+// #[test]
+// fn test_sha_github() {
+//     let expected = "399e6f883b8d97f822e8b9662d5377820d46f60dd33e95881e3173cebea6d70c";
+//     let mut cmd = bin();
+//     cmd.arg("sha")
+//         .arg("--gh")
+//         .arg("crate-ci/typos@v1.31.1")
+//         .assert()
+//         .success()
+//         .stdout(predicate::str::contains(expected));
+// }

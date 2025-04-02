@@ -2,6 +2,8 @@ use crate::InstallArgs;
 use reqwest::get;
 use std::env::consts::OS;
 use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 
 /// Guess the asset name for the current platform.
 fn guess_asset(names: &[&str]) -> usize {
@@ -39,6 +41,14 @@ async fn get_gh_asset_url(owner: &str, repo: &str, tag: &str) -> String {
     asset["browser_download_url"].as_str().unwrap().to_string()
 }
 
+fn interpret_path(path: &str) -> PathBuf {
+    if path.starts_with("~/") {
+        PathBuf::from(std::env::var("HOME").unwrap()).join(&path[2..])
+    } else {
+        PathBuf::from(path)
+    }
+}
+
 async fn install_gh(gh: &str, args: &InstallArgs) {
     let (owner, mut repo) = gh.split_once('/').unwrap();
     let tag = if let Some((repo, tag)) = repo.split_once('@') {
@@ -49,7 +59,8 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
     let url = get_gh_asset_url(owner, repo, tag).await;
     let response = get(url).await.unwrap();
     let body = response.bytes().await.unwrap();
-    let path = args.path.unwrap();
+    let dir = interpret_path(&args.dir);
+    let path = dir.join(repo);
     let mut file = File::create(path).unwrap();
     file.write_all(&body).unwrap();
 }

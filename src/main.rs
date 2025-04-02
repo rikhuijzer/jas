@@ -19,6 +19,8 @@ pub(crate) struct InstallArgs {
     gh: Option<String>,
     #[arg(short, long)]
     sha: Option<String>,
+    #[arg(short, long, default_value = "~/.jas/bin")]
+    dir: String,
 }
 
 #[derive(Clone, Debug, clap::Subcommand)]
