@@ -38,6 +38,30 @@ fn clean_tests_dir(prefix: &str) {
     }
 }
 
+/// THIS IS THE MOST IMPORTANT TEST DO NOT REMOVE.
+#[test]
+fn test_incorrect_sha() {
+    //
+    // THIS IS THE MOST IMPORTANT TEST DO NOT REMOVE.
+    //
+    let sha = "0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01";
+    let mut cmd = bin();
+    cmd.arg("--verbose")
+        .arg("--ansi=false")
+        .arg("install")
+        .arg("--gh=crate-ci/typos@v1.31.1")
+        .arg("--dir=tests")
+        .arg(format!("--sha={sha}"))
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "SHA-256 mismatch: expected"
+        ));
+    //
+    // THIS IS THE MOST IMPORTANT TEST DO NOT REMOVE.
+    //
+}
+
 #[test]
 fn test_install_gh_guess_typos() {
     clean_tests_dir("typos");
