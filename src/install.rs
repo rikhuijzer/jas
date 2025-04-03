@@ -90,9 +90,10 @@ fn verify_sha(body: &Bytes, args: &InstallArgs) {
 }
 
 /// Unpack a gzipped archive into a directory.
-fn unpack_gz(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
-    if name.ends_with(".tar.gz") {
-        let archive_dir = dir.join(name.strip_suffix(".tar.gz").unwrap());
+fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
+    let stem = Path::new(name).file_stem();
+    let archive_dir = dir.join(stem.as_ref().unwrap());
+    if name.ends_with(".tar.gz") || name.ends_with(".zip") {
         if archive_dir.exists() {
             if archive_dir.is_dir() {
                 std::fs::remove_dir_all(&archive_dir).unwrap();
@@ -101,10 +102,24 @@ fn unpack_gz(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
             }
         }
         std::fs::create_dir_all(&archive_dir).unwrap();
+    }
+    if name.ends_with(".tar.gz") {
+        std::fs::create_dir_all(&archive_dir).unwrap();
         let decompressed = GzDecoder::new(body.as_ref());
         let mut archive = Archive::new(decompressed);
         archive.unpack(&archive_dir).unwrap();
         Some(archive_dir)
+    } else if name.ends_with(".zip") {
+        #[cfg(windows)]
+        {
+            use zip::unstable::stream::ZipStreamReader;
+            let archive_dir = dir.join(name.strip_suffix(".zip").unwrap());
+            let zip = ZipStreamReader::new(body.as_ref());
+            zip.extract(&archive_dir).unwrap();
+            return Some(archive_dir);
+        }
+        #[cfg(not(windows))]
+        abort("Zip archives are (currently) only supported on Windows.");
     } else {
         None
     }
@@ -179,13 +194,16 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
 }
 
 fn make_executable(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
-    let mut permissions = std::fs::metadata(path).unwrap().permissions();
-    permissions.set_mode(0o755);
-    match std::fs::set_permissions(path, permissions) {
-        Ok(_) => (),
-        Err(e) => {
-            tracing::warn!("Failed to set executable permissions: {e}\nPlease set the executable permissions manually:\nchmod +x {}", path.display());
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = std::fs::metadata(path).unwrap().permissions();
+        permissions.set_mode(0o755);
+        match std::fs::set_permissions(path, permissions) {
+            Ok(_) => (),
+            Err(e) => {
+                tracing::warn!("Failed to set executable permissions: {e}\nPlease set the executable permissions manually:\nchmod +x {}", path.display());
+            }
         }
     }
 }
@@ -197,7 +215,7 @@ async fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &s
     verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
     std::fs::create_dir_all(&dir).unwrap();
-    let archive_dir = unpack_gz(&body, &dir, name);
+    let archive_dir = unpack_archive(&body, &dir, name);
     if let Some(archive_dir) = archive_dir {
         let path = copy_from_archive(&dir, &archive_dir, args, output_name);
         make_executable(&path);
@@ -225,7 +243,7 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
 }
 
 async fn install_url(url: &str, args: &InstallArgs) {
-    let name = url.split('/').last().unwrap();
+    let name = url.split('/').next_back().unwrap();
     let output_name = crate::guess::guess_binary_filename_from_url(url);
     install_core(url, args, name, &output_name).await;
 }

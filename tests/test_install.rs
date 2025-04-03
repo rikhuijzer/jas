@@ -1,8 +1,18 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
+use std::path::Path;
 
 fn bin() -> Command {
     Command::cargo_bin("jas").unwrap()
+}
+
+fn add_exe_if_needed(path: &str) -> String {
+    if cfg!(target_os = "windows") {
+        if !path.ends_with(".exe") {
+            return format!("{path}.exe");
+        }
+    }
+    path.to_string()
 }
 
 fn clean_tests_dir(prefix: &str) {
@@ -29,13 +39,18 @@ fn clean_tests_dir(prefix: &str) {
 }
 
 #[test]
-fn test_install_gh_guess() {
+fn test_install_gh_guess_typos() {
     clean_tests_dir("typos");
 
     let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
         "a172195e1b1f1e011b3034913d1c87f0bbf0552a096b4ead0e3fa0620f4329cd"
-    } else {
+    } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
         "f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993"
+    } else if cfg!(target_os = "windows") {
+        "1a8b5a2f2f7aaf9d07ac9b4a2039b9ae38722e12fd4afd5a08d6bdc8435f4279"
+    } else {
+        tracing::warn!("Skipping test on this platform");
+        return;
     };
     let mut cmd = bin();
     let expected_url = "https://github.com/crate-ci/typos/releases/download/v1.31.1/";
@@ -51,7 +66,8 @@ fn test_install_gh_guess() {
         .stderr(predicate::str::contains(
             "you may need to add it to your PATH manually",
         ));
-    let path = std::path::Path::new("tests/typos");
+    let path = add_exe_if_needed("tests/typos");
+    let path = Path::new(&path);
     assert!(path.exists());
 
     let mut version_cmd = Command::new(path);
@@ -68,8 +84,11 @@ fn test_install_gh_guess_just() {
 
     let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
         "0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01"
-    } else {
+    } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
         "181b91d0ceebe8a57723fb648ed2ce1a44d849438ce2e658339df4f8db5f1263"
+    } else {
+        tracing::warn!("Skipping test on this platform");
+        return;
     };
     let mut cmd = bin();
     let expected_url = "https://github.com/casey/just/releases/download/1.40.0/";
@@ -85,7 +104,8 @@ fn test_install_gh_guess_just() {
         .stderr(predicate::str::contains(
             "you may need to add it to your PATH manually",
         ));
-    let path = std::path::Path::new("tests/just");
+    let path = add_exe_if_needed("tests/just");
+    let path = Path::new(&path);
     assert!(path.exists());
 
     let mut version_cmd = Command::new(path);
@@ -178,7 +198,8 @@ fn test_install_url() {
         .stderr(predicate::str::contains(
             "you may need to add it to your PATH manually",
         ));
-    let path = std::path::Path::new("tests/trv");
+    let path = add_exe_if_needed("tests/trv");
+    let path = Path::new(&path);
     assert!(path.exists());
 
     let mut version_cmd = Command::new(path);

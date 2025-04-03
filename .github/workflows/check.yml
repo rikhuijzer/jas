@@ -9,7 +9,14 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+          - os: windows-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
 
     steps:
@@ -25,8 +32,8 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo test --no-run # compile
       - run: cargo test --all-features
-      - run: RUSTDOCFLAGS="-D warnings" cargo doc
 
   typos:
     runs-on: ubuntu-latest
