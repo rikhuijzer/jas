@@ -1,8 +1,18 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
+use std::path::Path;
 
 fn bin() -> Command {
     Command::cargo_bin("jas").unwrap()
+}
+
+fn add_exe_if_needed(path: &str) -> String {
+    if cfg!(target_os = "windows") {
+        if !path.ends_with(".exe") {
+            return format!("{path}.exe");
+        }
+    }
+    path.to_string()
 }
 
 fn clean_tests_dir(prefix: &str) {
@@ -56,7 +66,8 @@ fn test_install_gh_guess_typos() {
         .stderr(predicate::str::contains(
             "you may need to add it to your PATH manually",
         ));
-    let path = std::path::Path::new("tests/typos");
+    let path = add_exe_if_needed("tests/typos");
+    let path = Path::new(&path);
     assert!(path.exists());
 
     let mut version_cmd = Command::new(path);
@@ -93,7 +104,8 @@ fn test_install_gh_guess_just() {
         .stderr(predicate::str::contains(
             "you may need to add it to your PATH manually",
         ));
-    let path = std::path::Path::new("tests/just");
+    let path = add_exe_if_needed("tests/just");
+    let path = Path::new(&path);
     assert!(path.exists());
 
     let mut version_cmd = Command::new(path);
@@ -186,7 +198,8 @@ fn test_install_url() {
         .stderr(predicate::str::contains(
             "you may need to add it to your PATH manually",
         ));
-    let path = std::path::Path::new("tests/trv");
+    let path = add_exe_if_needed("tests/trv");
+    let path = Path::new(&path);
     assert!(path.exists());
 
     let mut version_cmd = Command::new(path);

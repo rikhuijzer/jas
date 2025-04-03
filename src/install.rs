@@ -119,7 +119,7 @@ fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
             return Some(archive_dir);
         }
         #[cfg(not(windows))]
-        abort("Zip archives are only supported on Windows. Open an issue if you want this feature on other systems.");
+        abort("Zip archives are (currently) only supported on Windows.");
     } else {
         None
     }
