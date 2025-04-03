@@ -1,9 +1,12 @@
 [package]
 name = "jas"
 version = "0.1.0"
+categories = ["command-line-utilities"]
+description = "Just an installer"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/rikhuijzer/jas"
+keywords = ["file", "filesystem", "tool"]
 
 [dependencies]
 bytes = "1.10"
@@ -29,4 +32,7 @@ tempfile = "3"
 toml = "0.8"
 
 [profile.release]
-panic = "abort"
+lto = true
+strip = true
+codegen-units = 1
+opt-level = "z"
