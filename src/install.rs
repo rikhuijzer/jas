@@ -61,7 +61,7 @@ async fn get_gh_asset_info(
     let assets = match body["assets"].as_array() {
         Some(assets) => assets,
         None => {
-            abort("Unexpected response from GitHub");
+            abort(&format!("Unexpected response from GitHub: {body}"));
         }
     };
     let asset = find_gh_asset(args, assets);
