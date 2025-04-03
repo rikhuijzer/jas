@@ -29,7 +29,7 @@ fn clean_tests_dir(prefix: &str) {
 }
 
 #[test]
-fn test_install_gh() {
+fn test_install_gh_guess() {
     clean_tests_dir("typos");
 
     let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
@@ -91,7 +91,7 @@ fn test_install_gh_no_guesses() {
         .arg("--dir=tests")
         .assert()
         .failure()
-        .stdout(predicate::str::contains(
+        .stderr(predicate::str::contains(
             "Could not find binary in archive; file this_file_does_not_exist not in",
         ));
 

@@ -199,7 +199,7 @@ async fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &s
     std::fs::create_dir_all(&dir).unwrap();
     let archive_dir = unpack_gz(&body, &dir, name);
     if let Some(archive_dir) = archive_dir {
-        let path = copy_from_archive(&dir, &archive_dir, args, name);
+        let path = copy_from_archive(&dir, &archive_dir, args, output_name);
         make_executable(&path);
     } else {
         let path = dir.join(output_name);

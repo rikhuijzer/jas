@@ -97,13 +97,12 @@ fn test_guess_asset_pandoc() {
 }
 
 pub(crate) fn guess_binary_in_archive(files: &[PathBuf], name: &str) -> PathBuf {
+    tracing::debug!("Trying to guess binary in archive with name {name}");
     let file = files
         .iter()
-        .filter_map(|file| {
-            let path = file;
+        .filter_map(|path| {
             if let Some(current) = path.file_name() {
                 let current = current.to_str().unwrap();
-                tracing::debug!("Checking {current} against {name}");
                 if current == name {
                     return Some(path.clone());
                 }
@@ -122,7 +121,7 @@ pub(crate) fn guess_binary_in_archive(files: &[PathBuf], name: &str) -> PathBuf 
     } else {
         let files = files
             .iter()
-            .map(|file| file.display().to_string())
+            .map(|file| file.file_name().unwrap().to_str().unwrap())
             .collect::<Vec<_>>();
         abort(&format!(
             "Could not find binary in archive; specify a binary name with --archive-filename. Available files in archive:\n{}",
