@@ -171,7 +171,7 @@ fn test_guess_binary_filename_just() {
 }
 
 pub(crate) fn guess_binary_filename_from_url(url: &str) -> String {
-    let name = url.split('/').last().unwrap();
+    let name = url.split('/').next_back().unwrap();
     let name = name.split('-').next().unwrap();
     name.to_string()
 }

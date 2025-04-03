@@ -247,7 +247,7 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
 }
 
 async fn install_url(url: &str, args: &InstallArgs) {
-    let name = url.split('/').last().unwrap();
+    let name = url.split('/').next_back().unwrap();
     let output_name = crate::guess::guess_binary_filename_from_url(url);
     install_core(url, args, name, &output_name).await;
 }
