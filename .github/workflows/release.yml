@@ -58,9 +58,9 @@ jobs:
         shell: bash
 
       - run: |
-          SRC="target/${{ matrix.target }}/release/trv${{ steps.check.outputs.ext }}"
+          SRC="target/${{ matrix.target }}/release/jas${{ steps.check.outputs.ext }}"
           echo "SRC: $SRC"
-          DST="target/release/trv-${{ matrix.target }}${{ steps.check.outputs.ext }}"
+          DST="target/release/jas-${{ matrix.target }}${{ steps.check.outputs.ext }}"
           echo "DST: $DST"
           cargo build --release --target ${{ matrix.target }}
           mv -v $SRC $DST

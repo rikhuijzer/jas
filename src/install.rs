@@ -179,13 +179,15 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
 }
 
 fn make_executable(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
-    let mut permissions = std::fs::metadata(path).unwrap().permissions();
-    permissions.set_mode(0o755);
-    match std::fs::set_permissions(path, permissions) {
-        Ok(_) => (),
-        Err(e) => {
-            tracing::warn!("Failed to set executable permissions: {e}\nPlease set the executable permissions manually:\nchmod +x {}", path.display());
+    if cfg!(unix) {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = std::fs::metadata(path).unwrap().permissions();
+        permissions.set_mode(0o755);
+        match std::fs::set_permissions(path, permissions) {
+            Ok(_) => (),
+            Err(e) => {
+                tracing::warn!("Failed to set executable permissions: {e}\nPlease set the executable permissions manually:\nchmod +x {}", path.display());
+            }
         }
     }
 }
