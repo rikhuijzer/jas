@@ -1,3 +1,4 @@
+mod guess;
 mod install;
 mod sha;
 

@@ -1,3 +1,4 @@
+use crate::guess::guess_asset;
 use crate::InstallArgs;
 use bytes::Bytes;
 use flate2::read::GzDecoder;
@@ -7,26 +8,6 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
 use tar::Archive;
-
-/// Guess the asset name for the current platform.
-fn guess_asset(names: &[&str]) -> usize {
-    fn searcher(name: &&str) -> bool {
-        if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
-            name.contains("linux") && name.contains("x86_64")
-        } else if cfg!(target_os = "macos") && cfg!(target_arch = "x86_64") {
-            (name.contains("macos") || name.contains("darwin")) && name.contains("x86_64")
-        } else if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
-            (name.contains("macos") || name.contains("darwin")) && name.contains("aarch64")
-        } else if cfg!(target_os = "linux") && cfg!(target_arch = "aarch64") {
-            name.contains("linux") && name.contains("aarch64")
-        } else if cfg!(target_os = "windows") && cfg!(target_arch = "x86_64") {
-            name.contains("windows") && name.contains("x86_64")
-        } else {
-            panic!("Unsupported platform: {}", name);
-        }
-    }
-    names.iter().position(searcher).expect("No asset found")
-}
 
 fn user_agent() -> String {
     format!("jas/{}", env!("CARGO_PKG_VERSION"))
