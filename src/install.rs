@@ -90,9 +90,14 @@ fn verify_sha(body: &Bytes, args: &InstallArgs) {
 }
 
 /// Unpack a gzipped archive into a directory.
-fn unpack_gz(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
-    if name.ends_with(".tar.gz") {
-        let archive_dir = dir.join(name.strip_suffix(".tar.gz").unwrap());
+fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
+    let without_suffix = name
+        .strip_suffix(".tar.gz")
+        .unwrap()
+        .strip_suffix(".zip")
+        .unwrap();
+    let archive_dir = dir.join(without_suffix);
+    if name.ends_with(".tar.gz") || name.ends_with(".zip") {
         if archive_dir.exists() {
             if archive_dir.is_dir() {
                 std::fs::remove_dir_all(&archive_dir).unwrap();
@@ -101,10 +106,23 @@ fn unpack_gz(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
             }
         }
         std::fs::create_dir_all(&archive_dir).unwrap();
+    }
+    if name.ends_with(".tar.gz") {
+        std::fs::create_dir_all(&archive_dir).unwrap();
         let decompressed = GzDecoder::new(body.as_ref());
         let mut archive = Archive::new(decompressed);
         archive.unpack(&archive_dir).unwrap();
         Some(archive_dir)
+    } else if name.ends_with(".zip") {
+        #[cfg(windows)]
+        {
+            let archive_dir = dir.join(name.strip_suffix(".zip").unwrap());
+            let mut zip = zip::ZipArchive::new(body.as_ref()).unwrap();
+            zip.extract(&archive_dir).unwrap();
+            Some(archive_dir)
+        }
+        #[cfg(not(windows))]
+        abort("Zip archives are only supported on Windows. Open an issue if you need this.");
     } else {
         None
     }
@@ -200,7 +218,7 @@ async fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &s
     verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
     std::fs::create_dir_all(&dir).unwrap();
-    let archive_dir = unpack_gz(&body, &dir, name);
+    let archive_dir = unpack_archive(&body, &dir, name);
     if let Some(archive_dir) = archive_dir {
         let path = copy_from_archive(&dir, &archive_dir, args, output_name);
         make_executable(&path);

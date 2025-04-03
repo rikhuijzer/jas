@@ -60,6 +60,8 @@ pub(crate) enum Task {
     Sha(ShaArgs),
     /// Install a binary from a GitHub repository.
     Install(InstallArgs),
+    /// Print the project's license.
+    License,
 }
 
 #[derive(Clone, Debug, Parser)]
@@ -107,6 +109,9 @@ async fn main() {
         }
         Task::Install(args) => {
             install::run(&args).await;
+        }
+        Task::License => {
+            println!("{}", include_str!("../LICENSE"));
         }
     }
 }
