@@ -179,7 +179,8 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
 }
 
 fn make_executable(path: &Path) {
-    if cfg!(unix) {
+    #[cfg(unix)]
+    {
         use std::os::unix::fs::PermissionsExt;
         let mut permissions = std::fs::metadata(path).unwrap().permissions();
         permissions.set_mode(0o755);
