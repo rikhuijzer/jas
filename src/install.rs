@@ -91,12 +91,8 @@ fn verify_sha(body: &Bytes, args: &InstallArgs) {
 
 /// Unpack a gzipped archive into a directory.
 fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
-    let without_suffix = name
-        .strip_suffix(".tar.gz")
-        .unwrap()
-        .strip_suffix(".zip")
-        .unwrap();
-    let archive_dir = dir.join(without_suffix);
+    let stem = Path::new(name).file_stem();
+    let archive_dir = dir.join(stem.as_ref().unwrap());
     if name.ends_with(".tar.gz") || name.ends_with(".zip") {
         if archive_dir.exists() {
             if archive_dir.is_dir() {
@@ -123,7 +119,7 @@ fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
             return Some(archive_dir);
         }
         #[cfg(not(windows))]
-        abort("Zip archives are only supported on Windows. Open an issue if you need this.");
+        abort("Zip archives are only supported on Windows. Open an issue if you want this feature on other systems.");
     } else {
         None
     }
