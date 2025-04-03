@@ -40,6 +40,7 @@ fn test_install_gh() {
     let mut cmd = bin();
     let expected_url = "https://github.com/crate-ci/typos/releases/download/v1.31.1/";
     cmd.arg("--verbose")
+        .arg("--ansi=false")
         .arg("install")
         .arg("--gh=crate-ci/typos@v1.31.1")
         .arg("--dir=tests")
@@ -72,6 +73,7 @@ fn test_install_gh_no_guesses() {
     };
     let mut cmd = bin();
     cmd.arg("--verbose")
+        .arg("--ansi=false")
         .arg("install")
         .arg("--gh=crate-ci/typos@v1.31.0")
         .arg("--archive-filename=this_file_does_not_exist")
@@ -80,12 +82,13 @@ fn test_install_gh_no_guesses() {
         .arg("--dir=tests")
         .assert()
         .failure()
-        .stderr(predicate::str::contains(
+        .stdout(predicate::str::contains(
             "Could not find binary in archive; file this_file_does_not_exist not in",
         ));
 
     let mut cmd = bin();
     cmd.arg("--verbose")
+        .arg("--ansi=false")
         .arg("install")
         .arg("--gh=crate-ci/typos@v1.31.0")
         .arg("--archive-filename=typos")
@@ -120,6 +123,7 @@ fn test_install_url() {
     };
     let mut cmd = bin();
     cmd.arg("--verbose")
+        .arg("--ansi=false")
         .arg("install")
         .arg("--url")
         .arg(&url)
