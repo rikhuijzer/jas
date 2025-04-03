@@ -63,6 +63,40 @@ fn test_install_gh_guess() {
 }
 
 #[test]
+fn test_install_gh_guess_just() {
+    clean_tests_dir("just");
+
+    let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        "0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01"
+    } else {
+        "f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993"
+    };
+    let mut cmd = bin();
+    let expected_url = "https://github.com/casey/just/releases/download/1.40.0/";
+    cmd.arg("--verbose")
+        .arg("--ansi=false")
+        .arg("install")
+        .arg("--gh=casey/just@1.40.0")
+        .arg("--dir=tests")
+        .arg(format!("--sha={sha}"))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(expected_url))
+        .stdout(predicate::str::contains(
+            "you may need to add it to your PATH manually",
+        ));
+    let path = std::path::Path::new("tests/just");
+    assert!(path.exists());
+
+    let mut version_cmd = Command::new(path);
+    version_cmd.arg("--version");
+    version_cmd
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("1.40.0"));
+}
+
+#[test]
 fn test_install_gh_no_guesses() {
     clean_tests_dir("no_guess_typos");
 

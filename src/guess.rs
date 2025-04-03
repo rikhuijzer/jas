@@ -98,7 +98,7 @@ fn test_guess_asset_pandoc() {
 
 pub(crate) fn guess_binary_in_archive(files: &[PathBuf], name: &str) -> PathBuf {
     tracing::debug!("Trying to guess binary in archive with name {name}");
-    let file = files
+    let matches = files
         .iter()
         .filter_map(|path| {
             if let Some(current) = path.file_name() {
@@ -114,11 +114,9 @@ pub(crate) fn guess_binary_in_archive(files: &[PathBuf], name: &str) -> PathBuf 
                 None
             }
         })
-        .next();
+        .collect::<Vec<_>>();
 
-    if let Some(file) = file {
-        file
-    } else {
+    let file = if matches.is_empty() {
         let files = files
             .iter()
             .map(|file| file.file_name().unwrap().to_str().unwrap())
@@ -127,11 +125,27 @@ pub(crate) fn guess_binary_in_archive(files: &[PathBuf], name: &str) -> PathBuf 
             "Could not find binary in archive; specify a binary name with --archive-filename. Available files in archive:\n{}",
             files.join("\n")
         ));
-    }
+    } else if matches.len() == 1 {
+        matches[0].clone()
+    } else {
+        let exact_match = matches
+            .iter()
+            .find(|path| path.file_name().unwrap().to_str().unwrap() == name);
+        if let Some(exact_match) = exact_match {
+            exact_match.clone()
+        } else {
+            let shortest_name = matches
+                .iter()
+                .min_by_key(|path| path.file_name().unwrap().to_str().unwrap().len())
+                .unwrap();
+            shortest_name.clone()
+        }
+    };
+    file
 }
 
 #[test]
-fn test_guess_binary_filename() {
+fn test_guess_binary_filename_typos() {
     let files = vec![
         "typos-v1.31.1-x86_64-apple-darwin.tar.gz",
         "doc",
@@ -139,12 +153,21 @@ fn test_guess_binary_filename() {
         "README.md",
     ];
     let files = files.iter().map(PathBuf::from).collect::<Vec<_>>();
-    let archive_filename = "typos-v1.31.1-x86_64-apple-darwin.tar.gz";
-    let binary = guess_binary_in_archive(&files, archive_filename);
+    let name = "typos";
+    let binary = guess_binary_in_archive(&files, name);
     assert_eq!(
         binary,
         PathBuf::from("typos-v1.31.1-x86_64-apple-darwin.tar.gz")
     );
+}
+
+#[test]
+fn test_guess_binary_filename_just() {
+    let files = vec!["Cargo.lock", "Cargo.toml", "just", "just.1", "LICENSE"];
+    let files = files.iter().map(PathBuf::from).collect::<Vec<_>>();
+    let name = "just";
+    let binary = guess_binary_in_archive(&files, name);
+    assert_eq!(binary, PathBuf::from("just"));
 }
 
 pub(crate) fn guess_binary_filename_from_url(url: &str) -> String {

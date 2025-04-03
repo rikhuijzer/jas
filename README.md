@@ -13,6 +13,12 @@ See the [Background](#background) section for more details.
 cargo install --debug --git https://github.com/rikhuijzer/jas
 ```
 
+## Usage
+
+```bash
+jas install --gh casey/just@1.40.0
+```
+
 ## Usage in GitHub Actions
 
 For example, to install and run [`typos`](https://github.com/crate-ci/typos) v1.31.1, you can use the following job in your GitHub Actions workflow:

@@ -3,3 +3,4 @@ tmp*
 tests/typos*
 tests/trv*
 tests/no_guess_typos*
+tests/just*
