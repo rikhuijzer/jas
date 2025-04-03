@@ -18,6 +18,11 @@ pub(crate) struct ShaArgs {
     path: Option<String>,
 }
 
+pub(crate) fn abort(message: &str) -> ! {
+    tracing::error!("{}", message);
+    std::process::exit(1);
+}
+
 #[derive(Clone, Debug, Parser)]
 pub(crate) struct InstallArgs {
     /// The GitHub repository to install from
@@ -84,7 +89,7 @@ async fn main() {
             if let Some(path) = &args.path {
                 let path = PathBuf::from(path);
                 if !path.exists() {
-                    panic!("Path does not exist: {}", path.display());
+                    abort(&format!("Path does not exist: {}", path.display()));
                 }
                 let digest = Sha256Hash::from_path(&path);
                 println!("{}", digest);

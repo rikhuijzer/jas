@@ -1,3 +1,4 @@
+use crate::abort;
 use crate::guess::guess_asset;
 use crate::InstallArgs;
 use bytes::Bytes;
@@ -27,20 +28,20 @@ async fn get_gh_asset_info(owner: &str, repo: &str, tag: &str) -> (String, Strin
     let response = match response {
         Ok(response) => response,
         Err(e) => {
-            panic!("Error requesting asset list: {}", e);
+            abort(&format!("Error requesting asset list: {e}"));
         }
     };
     let bytes = response.bytes().await.unwrap();
     let body = match serde_json::from_slice::<serde_json::Value>(&bytes) {
         Ok(body) => body,
         Err(e) => {
-            panic!("Error parsing asset list: {e}\nGot: {bytes:?}");
+            abort(&format!("Error parsing asset list: {e}\nGot: {bytes:?}"));
         }
     };
     let assets = match body["assets"].as_array() {
         Some(assets) => assets,
         None => {
-            panic!("Unexpected response from GitHub: {body:?}");
+            abort("Unexpected response from GitHub");
         }
     };
     let names = assets
@@ -66,7 +67,9 @@ fn verify_sha(body: &Bytes, args: &InstallArgs) {
     if let Some(expected) = &args.sha {
         let actual = crate::sha::Sha256Hash::from_data(body);
         if expected != &actual {
-            panic!("SHA-256 mismatch: expected {expected}, got {actual}");
+            abort(&format!(
+                "SHA-256 mismatch: expected {expected}, got {actual}"
+            ));
         }
     }
 }
@@ -163,11 +166,11 @@ fn copy_from_archive(
                 .iter()
                 .map(|file| file.display().to_string())
                 .collect::<Vec<_>>();
-            panic!(
+            abort(&format!(
                 "Could not find binary in archive; file {} not in\n{}",
                 filename.display(),
                 files.join("\n")
-            );
+            ));
         }
     } else {
         let files = std::fs::read_dir(archive_dir).unwrap();
@@ -180,7 +183,10 @@ fn copy_from_archive(
                 .iter()
                 .map(|file| file.display().to_string())
                 .collect::<Vec<_>>();
-            panic!("Could not find binary in archive; specify a binary name with --archive-filename\nAvailable files:\n{}", files.join("\n"))
+            abort(&format!(
+                "Could not find binary in archive; specify a binary name with --archive-filename\nAvailable files:\n{}",
+                files.join("\n")
+            ));
         }
     };
     let filename = binary.file_name().unwrap();

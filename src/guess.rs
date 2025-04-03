@@ -31,7 +31,8 @@ fn guess_asset_enum(names: &[&str], target_os: TargetOs, target_arch: TargetArch
         } else if target_os == TargetOs::Windows && target_arch == TargetArch::X86_64 {
             name.contains("windows") && contains_x86_64(name)
         } else {
-            panic!("Unsupported platform: {}", name);
+            tracing::error!("Unsupported platform: {}", name);
+            std::process::exit(1);
         }
     };
     names.iter().position(searcher).expect("No asset found")
@@ -46,7 +47,8 @@ pub fn guess_asset(names: &[&str]) -> usize {
     } else if cfg!(target_os = "windows") {
         TargetOs::Windows
     } else {
-        panic!("Unsupported platform");
+        tracing::error!("Unsupported platform");
+        std::process::exit(1);
     };
     let target_arch = if cfg!(target_arch = "x86_64") {
         TargetArch::X86_64
@@ -55,7 +57,8 @@ pub fn guess_asset(names: &[&str]) -> usize {
     } else if cfg!(target_arch = "arm") {
         TargetArch::Arm
     } else {
-        panic!("Unsupported architecture");
+        tracing::error!("Unsupported architecture");
+        std::process::exit(1);
     };
     guess_asset_enum(names, target_os, target_arch)
 }
