@@ -18,9 +18,17 @@ pub(crate) struct ShaArgs {
     path: Option<String>,
 }
 
+fn release_mode() -> bool {
+    cfg!(not(debug_assertions))
+}
+
 pub(crate) fn abort(message: &str) -> ! {
-    tracing::error!("{}", message);
-    std::process::exit(1);
+    if release_mode() {
+        tracing::error!("{message}");
+        std::process::exit(1);
+    } else {
+        panic!("{message}");
+    }
 }
 
 #[derive(Clone, Debug, Parser)]

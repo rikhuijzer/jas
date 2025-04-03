@@ -139,12 +139,7 @@ fn add_exe_if_needed(path: &Path) -> PathBuf {
 }
 
 /// Copy the binary from the archive to the target directory.
-fn copy_from_archive(
-    dir: &Path,
-    archive_dir: &Path,
-    args: &InstallArgs,
-    filename: &str,
-) -> PathBuf {
+fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &str) -> PathBuf {
     let binary = if let Some(filename) = &args.archive_filename {
         let filename = add_exe_if_needed(Path::new(filename));
         let binary = archive_dir.join(&filename);
@@ -166,7 +161,7 @@ fn copy_from_archive(
     } else {
         let files = std::fs::read_dir(archive_dir).unwrap();
         let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
-        let binary = crate::guess::guess_binary_filename(&files, filename);
+        let binary = crate::guess::guess_binary_in_archive(&files, name);
         add_exe_if_needed(&binary)
     };
     let filename = binary.file_name().unwrap();
@@ -195,16 +190,16 @@ fn make_executable(path: &Path) {
     }
 }
 
-async fn install_core(url: &str, args: &InstallArgs, filename: &str, output_name: &str) {
+async fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
     tracing::info!("Downloading {}", url);
     let response = get(url).await.unwrap();
     let body = response.bytes().await.unwrap();
     verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
     std::fs::create_dir_all(&dir).unwrap();
-    let archive_dir = unpack_gz(&body, &dir, filename);
+    let archive_dir = unpack_gz(&body, &dir, name);
     if let Some(archive_dir) = archive_dir {
-        let path = copy_from_archive(&dir, &archive_dir, args, filename);
+        let path = copy_from_archive(&dir, &archive_dir, args, name);
         make_executable(&path);
     } else {
         let path = dir.join(output_name);
@@ -230,9 +225,9 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
 }
 
 async fn install_url(url: &str, args: &InstallArgs) {
-    let filename = url.split('/').last().unwrap();
+    let name = url.split('/').last().unwrap();
     let output_name = crate::guess::guess_binary_filename_from_url(url);
-    install_core(url, args, filename, &output_name).await;
+    install_core(url, args, name, &output_name).await;
 }
 
 /// Install a binary.
