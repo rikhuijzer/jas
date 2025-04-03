@@ -116,10 +116,11 @@ fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
     } else if name.ends_with(".zip") {
         #[cfg(windows)]
         {
+            use zip::unstable::stream::ZipStreamReader;
             let archive_dir = dir.join(name.strip_suffix(".zip").unwrap());
-            let mut zip = zip::ZipArchive::new(body.as_ref()).unwrap();
+            let zip = ZipStreamReader::new(body.as_ref());
             zip.extract(&archive_dir).unwrap();
-            Some(archive_dir)
+            return Some(archive_dir);
         }
         #[cfg(not(windows))]
         abort("Zip archives are only supported on Windows. Open an issue if you need this.");
