@@ -13,7 +13,11 @@ See the [Background](#background) section for more details.
 cargo install --debug jas
 ```
 
+and add `~/.jas/bin` to your PATH.
+
 ## Usage
+
+To install Typos from GitHub into `~/.jas/bin`, you can use:
 
 ```bash
 jas install \
@@ -21,8 +25,9 @@ jas install \
   --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
 ```
 
-This is the SHA for MacOS aarch64.
-To get the SHA for other platforms, you can use:
+This command uses the SHA for the MacOS aarch64 release.
+To get the SHA for other platforms, you can use `sha --url`.
+For example,
 
 ```bash
 jas sha \
