@@ -29,13 +29,18 @@ fn clean_tests_dir(prefix: &str) {
 }
 
 #[test]
-fn test_install_gh_guess() {
+fn test_install_gh_guess_typos() {
     clean_tests_dir("typos");
 
     let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
         "a172195e1b1f1e011b3034913d1c87f0bbf0552a096b4ead0e3fa0620f4329cd"
-    } else {
+    } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
         "f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993"
+    } else if cfg!(target_os = "windows") {
+        "1a8b5a2f2f7aaf9d07ac9b4a2039b9ae38722e12fd4afd5a08d6bdc8435f4279"
+    } else {
+        tracing::warn!("Skipping test on this platform");
+        return;
     };
     let mut cmd = bin();
     let expected_url = "https://github.com/crate-ci/typos/releases/download/v1.31.1/";
