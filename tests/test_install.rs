@@ -54,9 +54,7 @@ fn test_incorrect_sha() {
         .arg(format!("--sha={sha}"))
         .assert()
         .failure()
-        .stderr(predicate::str::contains(
-            "SHA-256 mismatch: expected"
-        ));
+        .stderr(predicate::str::contains("SHA-256 mismatch: expected"));
     //
     // THIS IS THE MOST IMPORTANT TEST DO NOT REMOVE.
     //
