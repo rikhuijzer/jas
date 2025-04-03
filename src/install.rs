@@ -130,30 +130,6 @@ fn verify_in_path(dir: &Path) {
     }
 }
 
-fn guess_binary_filename(files: &[PathBuf], filename: &str) -> Option<PathBuf> {
-    files
-        .iter()
-        .filter_map(|file| {
-            let path = file;
-            if path.is_file() {
-                if let Some(current) = path.file_name() {
-                    let current = current.to_str().unwrap();
-                    tracing::debug!("Checking {current} against {filename}");
-                    if filename.contains(current) && !filename.contains("LICENSE") {
-                        Some(path.clone())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        })
-        .next()
-}
-
 fn add_exe_if_needed(path: &Path) -> PathBuf {
     if cfg!(target_os = "windows") {
         path.with_extension("exe")
@@ -190,19 +166,8 @@ fn copy_from_archive(
     } else {
         let files = std::fs::read_dir(archive_dir).unwrap();
         let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
-        let binary = guess_binary_filename(&files, filename);
-        if let Some(binary) = binary {
-            add_exe_if_needed(&binary)
-        } else {
-            let files = files
-                .iter()
-                .map(|file| file.display().to_string())
-                .collect::<Vec<_>>();
-            abort(&format!(
-                "Could not find binary in archive; specify a binary name with --archive-filename\nAvailable files:\n{}",
-                files.join("\n")
-            ));
-        }
+        let binary = crate::guess::guess_binary_filename(&files, filename);
+        add_exe_if_needed(&binary)
     };
     let filename = binary.file_name().unwrap();
     let mut src = File::open(&binary).unwrap();
@@ -264,15 +229,9 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
     install_core(&url, args, &name, repo).await;
 }
 
-fn guess_name(url: &str) -> String {
-    let name = url.split('/').last().unwrap();
-    let name = name.split('-').next().unwrap();
-    name.to_string()
-}
-
 async fn install_url(url: &str, args: &InstallArgs) {
     let filename = url.split('/').last().unwrap();
-    let output_name = guess_name(url);
+    let output_name = crate::guess::guess_binary_filename_from_url(url);
     install_core(url, args, filename, &output_name).await;
 }
 
