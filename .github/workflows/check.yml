@@ -79,3 +79,12 @@ jobs:
       - run: rustup update stable
       - run: rustup default stable
       - run: cargo clippy --all --all-features -- -D warnings
+
+  cargo-deny:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo install --locked cargo-deny@0.18.2
+      - run: cargo deny check licenses advisories
