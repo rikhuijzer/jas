@@ -16,6 +16,9 @@ pub(crate) struct ShaArgs {
     /// The file path to compute the SHA-256 hash of
     #[arg(short, long)]
     path: Option<String>,
+    /// The URL to compute the SHA-256 hash of
+    #[arg(short, long)]
+    url: Option<String>,
 }
 
 fn release_mode() -> bool {

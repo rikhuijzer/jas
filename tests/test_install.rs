@@ -69,7 +69,7 @@ fn test_install_gh_guess_just() {
     let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
         "0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01"
     } else {
-        "f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993"
+        "181b91d0ceebe8a57723fb648ed2ce1a44d849438ce2e658339df4f8db5f1263"
     };
     let mut cmd = bin();
     let expected_url = "https://github.com/casey/just/releases/download/1.40.0/";
