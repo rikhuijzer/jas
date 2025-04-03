@@ -1,3 +1,6 @@
+use crate::abort;
+use crate::ShaArgs;
+use reqwest::get;
 use sha2::Digest;
 use sha2::Sha256;
 use std::fmt;
@@ -57,4 +60,40 @@ fn test_hash() {
     let text = b"hello world";
     let expected = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
     assert_eq!(Sha256Hash::from_data(text), *expected);
+}
+
+fn hash_from_path(path: &str) -> Sha256Hash {
+    let path = PathBuf::from(path);
+    if !path.exists() {
+        abort(&format!("Path does not exist: {}", path.display()));
+    }
+    Sha256Hash::from_path(&path)
+}
+
+fn prefix_proto_if_needed(url: &str) -> String {
+    if !url.starts_with("http") {
+        format!("https://{}", url)
+    } else {
+        url.to_string()
+    }
+}
+
+async fn hash_from_url(url: &str) -> Sha256Hash {
+    let url = prefix_proto_if_needed(url);
+    tracing::info!("Downloading {}", url);
+    let response = get(url).await.unwrap();
+    let body = response.bytes().await.unwrap();
+    Sha256Hash::from_data(&body)
+}
+
+pub async fn run(args: &ShaArgs) {
+    if let Some(path) = &args.path {
+        let digest = hash_from_path(path);
+        println!("{}", digest);
+    } else if let Some(url) = &args.url {
+        let digest = hash_from_url(url).await;
+        println!("{}", digest);
+    } else {
+        abort("Specify either a path or a URL");
+    }
 }

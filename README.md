@@ -16,7 +16,17 @@ cargo install --debug --git https://github.com/rikhuijzer/jas
 ## Usage
 
 ```bash
-jas install --gh casey/just@1.40.0
+jas install \
+  --gh crate-ci/typos@v1.31.1 \
+  --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+```
+
+This is the SHA for MacOS aarch64.
+To get the SHA for other platforms, you can use:
+
+```bash
+jas sha \
+  --url github.com/crate-ci/typos/releases/download/v1.31.1/typos-v1.31.1-x86_64-unknown-linux-musl.tar.gz
 ```
 
 ## Usage in GitHub Actions

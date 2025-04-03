@@ -231,7 +231,7 @@ async fn install_url(url: &str, args: &InstallArgs) {
 }
 
 /// Install a binary.
-pub(crate) async fn install(args: &InstallArgs) {
+pub(crate) async fn run(args: &InstallArgs) {
     if let Some(gh) = &args.gh {
         install_gh(gh, args).await;
     } else if let Some(url) = &args.url {

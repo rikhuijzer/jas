@@ -3,16 +3,11 @@ mod install;
 mod sha;
 
 use clap::Parser;
-use sha::Sha256Hash;
-use std::path::PathBuf;
 use tracing::subscriber::SetGlobalDefaultError;
 use tracing::Level;
 
 #[derive(Clone, Debug, Parser)]
 pub(crate) struct ShaArgs {
-    /// The GitHub repository to compute the SHA-256 hash of
-    #[arg(short, long)]
-    gh: Option<String>,
     /// The file path to compute the SHA-256 hash of
     #[arg(short, long)]
     path: Option<String>,
@@ -90,6 +85,8 @@ pub fn init_subscriber(level: Level, ansi: bool) -> Result<(), SetGlobalDefaultE
         .without_time()
         .with_target(false)
         .with_ansi(ansi)
+        // Write logs to stderr to allow writing sha output to stdout.
+        .with_writer(std::io::stderr)
         .finish();
     tracing::subscriber::set_global_default(subscriber)
 }
@@ -106,21 +103,10 @@ async fn main() {
 
     match args.task {
         Task::Sha(args) => {
-            if let Some(path) = &args.path {
-                let path = PathBuf::from(path);
-                if !path.exists() {
-                    abort(&format!("Path does not exist: {}", path.display()));
-                }
-                let digest = Sha256Hash::from_path(&path);
-                println!("{}", digest);
-            } else if let Some(_github) = args.gh {
-                todo!()
-            } else {
-                todo!()
-            }
+            sha::run(&args).await;
         }
         Task::Install(args) => {
-            install::install(&args).await;
+            install::run(&args).await;
         }
     }
 }

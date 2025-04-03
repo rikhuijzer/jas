@@ -47,8 +47,8 @@ fn test_install_gh_guess() {
         .arg(format!("--sha={sha}"))
         .assert()
         .success()
-        .stdout(predicate::str::contains(expected_url))
-        .stdout(predicate::str::contains(
+        .stderr(predicate::str::contains(expected_url))
+        .stderr(predicate::str::contains(
             "you may need to add it to your PATH manually",
         ));
     let path = std::path::Path::new("tests/typos");
@@ -81,8 +81,8 @@ fn test_install_gh_guess_just() {
         .arg(format!("--sha={sha}"))
         .assert()
         .success()
-        .stdout(predicate::str::contains(expected_url))
-        .stdout(predicate::str::contains(
+        .stderr(predicate::str::contains(expected_url))
+        .stderr(predicate::str::contains(
             "you may need to add it to your PATH manually",
         ));
     let path = std::path::Path::new("tests/just");
@@ -174,8 +174,8 @@ fn test_install_url() {
         .arg("tests")
         .assert()
         .success()
-        .stdout(predicate::str::contains(url))
-        .stdout(predicate::str::contains(
+        .stderr(predicate::str::contains(url))
+        .stderr(predicate::str::contains(
             "you may need to add it to your PATH manually",
         ));
     let path = std::path::Path::new("tests/trv");
