@@ -61,7 +61,7 @@ jobs:
 As stated above, the benefit of this is that you can be sure which version of the binary you are using.
 If someone changes the binary, the SHA will change and your CI will fail.
 
-## Usage
+## More usage examples
 
 To install a binary from a GitHub release, you can use the following command:
 
@@ -70,24 +70,27 @@ jas install --gh casey/just@1.40.0
 ```
 
 By default, this will store the binary in `~/.jas/bin`.
-You can change this by using the `--output` flag.
+You can change this by using the `--dir` flag.
 
 You can also specify the SHA of the release you want to install.
 
 ```bash
-jas install --gh casey/just@1.40.0 --sha256 1234567890
+jas install \
+  --gh casey/just@1.40.0 \
+  --sha 0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01
 ```
 
 To get this SHA, you can use:
 
 ```bash
-jas sha --gh casey/just@1.40.0
+jas sha \
+  --url github.com/casey/just/releases/download/1.40.0/just-1.40.0-aarch64-apple-darwin.tar.gz
 ```
 
 Or if you already have the file locally:
 
 ```bash
-jas sha --path just-1.40.0.tar.gz
+jas sha --path just-1.40.0-aarch64-apple-darwin.tar.gz
 ```
 
 ## Background
@@ -101,13 +104,13 @@ This is a fundamental problem for GitHub Actions.
 It is possible to retroactively change the tags.
 So even clients that pinned to an older version of `changed-files` would start using the malicious version.
 For example, `changed-files` was at v46.0.1 at the time of the attack.
-So, if you would use
+This means that if you would use
 
 ```yml
 - uses: tj-actions/changed-files@46
 ```
 
-then this would be interpreted by GitHub as `46.0.1` and you would start using the malicious version.
+then this would be interpreted by GitHub as `46.0.1` and you would automatically start using the malicious version.
 However, even if you pinned to an older release like `46.0.0`:
 
 ```yml
@@ -124,8 +127,8 @@ For example, `changed-files` now advises to use this:
 - uses: tj-actions/changed-files@823fcebdb31bb35fdf2229d9f769b400309430d0 # v46
 ```
 
-This of course is better, but I personally severely dislike using commit hashes.
-As is clear from the fact that now people typically use a comment to describe which version is being used.
+This of course is better, but I personally dislike using commit hashes.
+The main problem is that it's hard to tell which version is being used, which is why it is typical to write a comment with the version number.
 
 This tool is a workaround for this problem for situations where binaries are available.
 It turns the syntax into:
@@ -142,4 +145,4 @@ If this checksum does not match, the tool will fail.
 
 Unlike the GitHub Actions syntax, the version cannot become out of sync with the hash.
 Also, with this method, you know exactly what you run.
-With GitHub Actions, even when the commit hash is pinned, the dependencies can still change if I understand correctly.
+With GitHub Actions, even when the commit hash is pinned, the dependencies could still change if I understand correctly.
