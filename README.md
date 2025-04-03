@@ -2,8 +2,8 @@
 
 Just an installer.
 
-This tool is meant to be used in situations where you want to reliably install a binary.
-By reliably, I mean that you want to specify the SHA-256 checksum so that you can be sure that you are using the correct binary.
+This tool is meant to be used in situations where you want to install a binary in a reliable way.
+By reliable, I mean that you want to specify the SHA-256 checksum so that you can be sure that you are using the correct binary.
 I wrote this tool in response to yet another GitHub Action security issue.
 See the [Background](#background) section for more details.
 
