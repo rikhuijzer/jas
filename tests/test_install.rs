@@ -68,14 +68,23 @@ fn test_install_gh_no_guesses() {
 
     let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
         "96684058f88bd8343aa992223c9937f399254eb5277f0d297d2ac7b022d990b7"
-    } else {
+    } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
         "3b11f5e3de56ecdc13fedc9425f201c83bd2dd045df938a166d7fed85d238faf"
+    } else {
+        tracing::warn!("Skipping test on this platform");
+        return;
+    };
+    let asset_name = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        "typos-v1.31.0-aarch64-apple-darwin.tar.gz"
+    } else {
+        "typos-v1.31.0-x86_64-unknown-linux-musl.tar.gz"
     };
     let mut cmd = bin();
     cmd.arg("--verbose")
         .arg("--ansi=false")
         .arg("install")
         .arg("--gh=crate-ci/typos@v1.31.0")
+        .arg(format!("--asset-name={asset_name}"))
         .arg("--archive-filename=this_file_does_not_exist")
         .arg("--binary-filename=no_guess_typos")
         .arg(format!("--sha={sha}"))

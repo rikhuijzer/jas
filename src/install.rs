@@ -4,6 +4,7 @@ use crate::InstallArgs;
 use bytes::Bytes;
 use flate2::read::GzDecoder;
 use reqwest::get;
+use serde_json::Value;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -14,7 +15,26 @@ fn user_agent() -> String {
     format!("jas/{}", env!("CARGO_PKG_VERSION"))
 }
 
-async fn get_gh_asset_info(owner: &str, repo: &str, tag: &str) -> (String, String) {
+fn find_gh_asset(args: &InstallArgs, assets: &[Value]) -> Value {
+    let names = assets
+        .iter()
+        .map(|asset| asset["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    let index = if let Some(name) = &args.asset_name {
+        names.iter().position(|current| current == name).unwrap()
+    } else {
+        guess_asset(&names)
+    };
+    let asset = &assets[index];
+    asset.clone()
+}
+
+async fn get_gh_asset_info(
+    args: &InstallArgs,
+    owner: &str,
+    repo: &str,
+    tag: &str,
+) -> (String, String) {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
     tracing::debug!("Requesting asset list from {}", url);
     let client = reqwest::Client::new();
@@ -44,12 +64,7 @@ async fn get_gh_asset_info(owner: &str, repo: &str, tag: &str) -> (String, Strin
             abort("Unexpected response from GitHub");
         }
     };
-    let names = assets
-        .iter()
-        .map(|asset| asset["name"].as_str().unwrap())
-        .collect::<Vec<_>>();
-    let index = guess_asset(&names);
-    let asset = &assets[index];
+    let asset = find_gh_asset(args, assets);
     let url = asset["browser_download_url"].as_str().unwrap().to_string();
     let name = asset["name"].as_str().unwrap().to_string();
     (url, name)
@@ -245,7 +260,7 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
     } else {
         todo!("Missing tag not yet supported")
     };
-    let (url, name) = get_gh_asset_info(owner, repo, tag).await;
+    let (url, name) = get_gh_asset_info(args, owner, repo, tag).await;
     install_core(&url, args, &name, repo).await;
 }
 

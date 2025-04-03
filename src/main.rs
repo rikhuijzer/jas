@@ -37,6 +37,9 @@ pub(crate) struct InstallArgs {
     /// The directory to install the binary to
     #[arg(long, default_value = "~/.jas/bin")]
     dir: String,
+    /// The name of the GitHub release asset to install
+    #[arg(long)]
+    asset_name: Option<String>,
     /// The name of the binary after installation [default: the repo name or guessed from the url]
     #[arg(long)]
     binary_filename: Option<String>,
