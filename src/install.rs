@@ -38,13 +38,16 @@ async fn get_gh_asset_info(
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
     tracing::debug!("Requesting asset list from {}", url);
     let client = reqwest::Client::new();
-    let response = client
+    let mut request = client
         .get(url)
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("User-Agent", user_agent())
-        .send()
-        .await;
+        .header("User-Agent", user_agent());
+    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+        let token = format!("Bearer {token}");
+        request = request.header("Authorization", token);
+    }
+    let response = request.send().await;
     let response = match response {
         Ok(response) => response,
         Err(e) => {

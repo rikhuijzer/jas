@@ -34,6 +34,8 @@ jobs:
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
       - run: cargo test --no-run # compile
       - run: cargo test --all-features
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   typos:
     runs-on: ubuntu-latest
