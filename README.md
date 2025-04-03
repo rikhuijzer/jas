@@ -10,7 +10,7 @@ See the [Background](#background) section for more details.
 ## Installation
 
 ```bash
-cargo install --debug --git https://github.com/rikhuijzer/jas
+cargo install --debug jas
 ```
 
 ## Usage
@@ -45,7 +45,7 @@ jobs:
 
       - name: Install jas
         run: |
-          cargo install --debug --git https://github.com/rikhuijzer/jas
+          cargo install --debug jas
           echo "$HOME/.jas/bin" >> $GITHUB_PATH
 
       - name: Install typos

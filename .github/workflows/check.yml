@@ -47,7 +47,7 @@ jobs:
 
       - name: Install jas
         run: |
-          cargo install --debug --path .
+          cargo install --debug jas
           echo "$HOME/.jas/bin" >> $GITHUB_PATH
 
       - name: Install typos
@@ -92,5 +92,5 @@ jobs:
       - uses: actions/checkout@v4
       - run: rustup update stable
       - run: rustup default stable
-      - run: cargo install --locked cargo-deny@0.18.2
+      - run: cargo install --debug cargo-deny@0.18.2
       - run: cargo deny check licenses advisories
