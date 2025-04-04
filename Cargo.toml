@@ -10,7 +10,7 @@ repository = "https://github.com/rikhuijzer/jas"
 keywords = ["file", "filesystem", "tool"]
 
 [dependencies]
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 flate2 = "1.0"
 # Used inside Rust's bootstrapping phase so should be safe.
 tar = "0.4"

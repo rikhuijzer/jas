@@ -60,7 +60,7 @@ pub(crate) struct InstallArgs {
     /// ```
     /// 
     /// then this Action will have access to the GITHUB_TOKEN via the `github.token` context.
-    #[arg(long, verbatim_doc_comment)]
+    #[arg(long, env = "GITHUB_TOKEN", verbatim_doc_comment)]
     gh_token: Option<String>,
     /// The URL to install from
     /// 
