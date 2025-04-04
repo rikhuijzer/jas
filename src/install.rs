@@ -242,7 +242,7 @@ fn make_executable(path: &Path) {
     }
 }
 
-fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
+pub(crate) fn download_file(url: &str) -> Vec<u8> {
     tracing::info!("Downloading {}", url);
     let mut response = match ureq::get(url).call() {
         Ok(response) => response,
@@ -252,12 +252,16 @@ fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
     };
     let limit_in_megabytes = 300;
     let limit = limit_in_megabytes * 1024 * 1024;
-    let body = match response.body_mut().with_config().limit(limit).read_to_vec() {
+    match response.body_mut().with_config().limit(limit).read_to_vec() {
         Ok(body) => body,
         Err(e) => {
             abort(&format!("Error reading {url}: {e}"));
         }
-    };
+    }
+}
+
+fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
+    let body = download_file(url);
     verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
     std::fs::create_dir_all(&dir).unwrap();

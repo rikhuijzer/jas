@@ -79,9 +79,7 @@ fn prefix_proto_if_needed(url: &str) -> String {
 
 fn hash_from_url(url: &str) -> Sha256Hash {
     let url = prefix_proto_if_needed(url);
-    tracing::info!("Downloading {}", url);
-    let mut response = ureq::get(url).call().unwrap();
-    let body = response.body_mut().read_to_vec().unwrap();
+    let body = crate::install::download_file(&url);
     Sha256Hash::from_data(&body)
 }
 
