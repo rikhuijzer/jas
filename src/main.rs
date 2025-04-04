@@ -93,8 +93,7 @@ pub fn init_subscriber(level: Level, ansi: bool) -> Result<(), SetGlobalDefaultE
     tracing::subscriber::set_global_default(subscriber)
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let args = Arguments::parse();
     let level = if args.verbose {
         Level::DEBUG
@@ -105,10 +104,10 @@ async fn main() {
 
     match args.task {
         Task::Sha(args) => {
-            sha::run(&args).await;
+            sha::run(&args);
         }
         Task::Install(args) => {
-            install::run(&args).await;
+            install::run(&args);
         }
         Task::License => {
             println!("{}", include_str!("../LICENSE"));

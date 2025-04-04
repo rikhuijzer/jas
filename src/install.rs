@@ -1,9 +1,7 @@
 use crate::abort;
 use crate::guess::guess_asset;
 use crate::InstallArgs;
-use bytes::Bytes;
 use flate2::read::GzDecoder;
-use reqwest::get;
 use serde_json::Value;
 use std::fs::File;
 use std::io::prelude::*;
@@ -29,12 +27,7 @@ fn find_gh_asset(args: &InstallArgs, assets: &[Value]) -> Value {
     asset.clone()
 }
 
-async fn get_gh_asset_info(
-    args: &InstallArgs,
-    owner: &str,
-    repo: &str,
-    tag: &str,
-) -> (String, String) {
+fn get_gh_asset_info(args: &InstallArgs, owner: &str, repo: &str, tag: &str) -> (String, String) {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
     tracing::debug!("Requesting asset list from {}", url);
     let mut request = ureq::get(url)
@@ -84,7 +77,7 @@ fn interpret_path(path: &str) -> PathBuf {
     }
 }
 
-fn verify_sha(body: &Bytes, args: &InstallArgs) {
+fn verify_sha(body: &[u8], args: &InstallArgs) {
     if let Some(expected) = &args.sha {
         let actual = crate::sha::Sha256Hash::from_data(body);
         if expected != &actual {
@@ -96,7 +89,7 @@ fn verify_sha(body: &Bytes, args: &InstallArgs) {
 }
 
 /// Unpack a gzipped archive into a directory.
-fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
+fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
     let stem = Path::new(name).file_stem();
     let archive_dir = dir.join(stem.as_ref().unwrap());
     if name.ends_with(".tar.gz") || name.ends_with(".zip") {
@@ -111,7 +104,7 @@ fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
     }
     if name.ends_with(".tar.gz") {
         std::fs::create_dir_all(&archive_dir).unwrap();
-        let decompressed = GzDecoder::new(body.as_ref());
+        let decompressed = GzDecoder::new(body);
         let mut archive = Archive::new(decompressed);
         archive.unpack(&archive_dir).unwrap();
         Some(archive_dir)
@@ -214,10 +207,20 @@ fn make_executable(path: &Path) {
     }
 }
 
-async fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
+fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
     tracing::info!("Downloading {}", url);
-    let response = get(url).await.unwrap();
-    let body = response.bytes().await.unwrap();
+    let mut response = match ureq::get(url).call() {
+        Ok(response) => response,
+        Err(e) => {
+            abort(&format!("Error downloading {url}: {e}"));
+        }
+    };
+    let body = match response.body_mut().read_to_vec() {
+        Ok(body) => body,
+        Err(e) => {
+            abort(&format!("Error reading {url}: {e}"));
+        }
+    };
     verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
     std::fs::create_dir_all(&dir).unwrap();
@@ -234,7 +237,7 @@ async fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &s
     verify_in_path(&dir);
 }
 
-async fn install_gh(gh: &str, args: &InstallArgs) {
+fn install_gh(gh: &str, args: &InstallArgs) {
     let split = gh.split_once('/').unwrap();
     let owner = split.0;
     let mut repo = split.1;
@@ -244,22 +247,22 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
     } else {
         todo!("Missing tag not yet supported")
     };
-    let (url, name) = get_gh_asset_info(args, owner, repo, tag).await;
-    install_core(&url, args, &name, repo).await;
+    let (url, name) = get_gh_asset_info(args, owner, repo, tag);
+    install_core(&url, args, &name, repo);
 }
 
-async fn install_url(url: &str, args: &InstallArgs) {
+fn install_url(url: &str, args: &InstallArgs) {
     let name = url.split('/').next_back().unwrap();
     let output_name = crate::guess::guess_binary_filename_from_url(url);
-    install_core(url, args, name, &output_name).await;
+    install_core(url, args, name, &output_name);
 }
 
 /// Install a binary.
-pub(crate) async fn run(args: &InstallArgs) {
+pub(crate) fn run(args: &InstallArgs) {
     if let Some(gh) = &args.gh {
-        install_gh(gh, args).await;
+        install_gh(gh, args);
     } else if let Some(url) = &args.url {
-        install_url(url, args).await;
+        install_url(url, args);
     } else {
         todo!()
     }
