@@ -44,9 +44,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - run: cargo install --debug --path .
-
       - run: >
           jas install
           --gh crate-ci/typos@v1.31.1
@@ -54,7 +52,6 @@ jobs:
         # Using GITHUB_TOKEN because the tests make lots of requests and may hit rate limits.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - run: typos .
 
   fmt:

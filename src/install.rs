@@ -156,6 +156,9 @@ fn add_exe_if_needed(path: &Path) -> PathBuf {
     }
 }
 
+/// Return the files in an archive.
+/// 
+/// Also handles archives with nested directories.
 fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
     let files = std::fs::read_dir(archive_dir).unwrap();
     let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
