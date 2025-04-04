@@ -35,6 +35,11 @@ pretty_assertions = "1"
 tempfile = "3"
 toml = "0.8"
 
+[profile.dev]
+debug = 0
+strip = "debuginfo"
+split-debuginfo = "unpacked"
+
 [profile.release]
 lto = true
 strip = true
