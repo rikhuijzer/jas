@@ -84,7 +84,7 @@ fn verify_sha(body: &[u8], args: &InstallArgs) {
         let actual = crate::sha::Sha256Hash::from_data(body);
         if expected != &actual {
             abort(&format!(
-                "SHA-256 mismatch: expected {expected}, got {actual}"
+                "SHA-256 mismatch: expected\n{expected}, but got\n{actual}"
             ));
         }
     }
