@@ -197,9 +197,12 @@ fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
 fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &str) -> PathBuf {
     let binary = if let Some(filename) = &args.archive_filename {
         let filename = add_exe_if_needed(Path::new(filename));
-        let binary = archive_dir.join(&filename);
-        if binary.exists() {
-            binary
+        let files = files_in_archive(archive_dir);
+        let binary = files
+            .iter()
+            .find(|file| file.file_name() == filename.file_name());
+        if let Some(binary) = binary {
+            binary.to_path_buf()
         } else {
             let files = files_in_archive(archive_dir);
             let files = files
