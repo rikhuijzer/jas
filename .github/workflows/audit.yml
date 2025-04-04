@@ -16,8 +16,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update stable
-      - run: rustup default stable
       - run: cargo install --debug --path .
       - run: >
           jas install
@@ -31,8 +29,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update stable
-      - run: rustup default stable
       - run: cargo install --debug --path .
       - run: >
           jas install
