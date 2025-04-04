@@ -244,7 +244,9 @@ fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
             abort(&format!("Error downloading {url}: {e}"));
         }
     };
-    let body = match response.body_mut().read_to_vec() {
+    let limit_in_megabytes = 300;
+    let limit = limit_in_megabytes * 1024 * 1024;
+    let body = match response.body_mut().with_config().limit(limit).read_to_vec() {
         Ok(body) => body,
         Err(e) => {
             abort(&format!("Error reading {url}: {e}"));
