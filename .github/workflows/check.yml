@@ -46,9 +46,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install jas
-        run: |
-          cargo install --debug jas
-          echo "$HOME/.jas/bin" >> $GITHUB_PATH
+        run: cargo install --debug --path .
 
       - name: Install typos
         run: |
