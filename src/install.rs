@@ -90,6 +90,23 @@ fn verify_sha(body: &[u8], args: &InstallArgs) {
     }
 }
 
+/// Handle archives containing a single dir.
+fn handle_nested_dir(archive_dir: &Path) {
+    let files = std::fs::read_dir(archive_dir).unwrap();
+    let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+    if files.len() == 1 {
+        let path = files[0].clone();
+        if path.is_dir() {
+            for entry in std::fs::read_dir(&path).unwrap() {
+                let entry = entry.unwrap();
+                let new_path = archive_dir.join(entry.file_name());
+                std::fs::rename(entry.path(), &new_path).unwrap();
+            }
+            std::fs::remove_dir(&path).unwrap();
+        }
+    }
+}
+
 /// Unpack a gzipped archive into a directory.
 fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
     let stem = Path::new(name).file_stem();
@@ -109,6 +126,8 @@ fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
         let decompressed = GzDecoder::new(body);
         let mut archive = Archive::new(decompressed);
         archive.unpack(&archive_dir).unwrap();
+        tracing::debug!("Unpacked archive into {}", archive_dir.display());
+        handle_nested_dir(&archive_dir);
         Some(archive_dir)
     } else if name.ends_with(".zip") {
         #[cfg(windows)]
@@ -117,7 +136,9 @@ fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
             let archive_dir = dir.join(name.strip_suffix(".zip").unwrap());
             let zip = ZipStreamReader::new(body.as_ref());
             zip.extract(&archive_dir).unwrap();
-            return Some(archive_dir);
+            tracing::debug!("Unpacked archive into {}", archive_dir.display());
+            handle_nested_dir(&archive_dir);
+            Some(archive_dir)
         }
         #[cfg(not(windows))]
         abort("Zip archives are (currently) only supported on Windows.");

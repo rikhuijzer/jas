@@ -139,6 +139,39 @@ fn test_install_gh_guess_just() {
 }
 
 #[test]
+fn test_install_gh_guess_cargo_deny() {
+    clean_tests_dir("cargo-deny");
+
+    let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        "2d5f080db9c28cab0650dda5c07e2374b47f6f15b046c4391e48c9effbabc29a"
+    } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
+        "43c4a79c4b9fd1fcb3dddb305a1b4d8f7ac4a72accd61bb50a0b698789ca894c"
+    } else {
+        tracing::warn!("Skipping test on this platform");
+        return;
+    };
+    let mut cmd = bin();
+    cmd.arg("--verbose")
+        .arg("--ansi=false")
+        .arg("install")
+        .arg("--gh=EmbarkStudios/cargo-deny@0.18.2")
+        .arg("--dir=tests")
+        .arg(format!("--sha={sha}"))
+        .assert()
+        .success();
+    let path = add_exe_if_needed("tests/cargo-deny");
+    let path = Path::new(&path);
+    assert!(path.exists());
+
+    let mut version_cmd = Command::new(path);
+    version_cmd.arg("--version");
+    version_cmd
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("0.18.2"));
+}
+
+#[test]
 fn test_install_gh_no_guesses() {
     clean_tests_dir("no_guess_typos");
 

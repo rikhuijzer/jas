@@ -48,8 +48,8 @@ jobs:
       - run: cargo install --debug --path .
 
       - run: >
-          jas install \
-          --gh crate-ci/typos@v1.31.1 \
+          jas install
+          --gh crate-ci/typos@v1.31.1
           --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
         # Using GITHUB_TOKEN because the tests make lots of requests and may hit rate limits.
         env:

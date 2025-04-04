@@ -97,7 +97,14 @@ fn test_guess_asset_pandoc() {
 }
 
 pub(crate) fn guess_binary_in_archive(files: &[PathBuf], name: &str) -> PathBuf {
-    tracing::debug!("Trying to guess binary in archive with name {name}");
+    tracing::debug!(
+        "Trying to guess binary in archive with name {name} from files:\n{}",
+        files
+            .iter()
+            .map(|f| f.display().to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
     let matches = files
         .iter()
         .filter_map(|path| {
@@ -141,6 +148,7 @@ pub(crate) fn guess_binary_in_archive(files: &[PathBuf], name: &str) -> PathBuf 
             shortest_name.clone()
         }
     };
+    tracing::debug!("Guessed binary in archive: {}", file.display());
     file
 }
 

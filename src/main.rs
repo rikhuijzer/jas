@@ -20,8 +20,12 @@ fn release_mode() -> bool {
     cfg!(not(debug_assertions))
 }
 
+fn is_ci() -> bool {
+    std::env::var("CI").unwrap_or("false".to_string()) == "true"
+}
+
 pub(crate) fn abort(message: &str) -> ! {
-    if release_mode() {
+    if release_mode() || is_ci() {
         tracing::error!("{message}");
         std::process::exit(1);
     } else {
