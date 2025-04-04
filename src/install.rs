@@ -34,7 +34,7 @@ fn get_gh_asset_info(args: &InstallArgs, owner: &str, repo: &str, tag: &str) -> 
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-Agent", user_agent());
-    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+    if let Some(token) = &args.gh_token {
         let token = format!("Bearer {token}");
         request = request.header("Authorization", token);
     }
