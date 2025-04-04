@@ -42,7 +42,9 @@ fn get_gh_asset_info(args: &InstallArgs, owner: &str, repo: &str, tag: &str) -> 
     let mut response = match response {
         Ok(response) => response,
         Err(e) => {
-            abort(&format!("Error requesting asset list: {e}"));
+            abort(&format!(
+                "Error requesting asset list. Is the correct tag specified? Error: {e}"
+            ));
         }
     };
     let bytes = match response.body_mut().read_to_vec() {
