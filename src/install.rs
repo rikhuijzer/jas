@@ -37,9 +37,7 @@ async fn get_gh_asset_info(
 ) -> (String, String) {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
     tracing::debug!("Requesting asset list from {}", url);
-    let client = reqwest::Client::new();
-    let mut request = client
-        .get(url)
+    let mut request = ureq::get(url)
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-Agent", user_agent());
@@ -47,14 +45,19 @@ async fn get_gh_asset_info(
         let token = format!("Bearer {token}");
         request = request.header("Authorization", token);
     }
-    let response = request.send().await;
-    let response = match response {
+    let response = request.call();
+    let mut response = match response {
         Ok(response) => response,
         Err(e) => {
             abort(&format!("Error requesting asset list: {e}"));
         }
     };
-    let bytes = response.bytes().await.unwrap();
+    let bytes = match response.body_mut().read_to_vec() {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            abort(&format!("Error reading asset list: {e}"));
+        }
+    };
     let body = match serde_json::from_slice::<serde_json::Value>(&bytes) {
         Ok(body) => body,
         Err(e) => {
