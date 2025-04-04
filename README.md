@@ -69,38 +69,6 @@ Normal GitHub Actions such as
 receive the `GITHUB_TOKEN` by default [via the `github.token` context](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication).
 If you don't want to use a `GITHUB_TOKEN` it is also possible to manually specify the `--url` instead of `--gh`.
 
-## More usage examples
-
-To install a binary from a GitHub release, you can use the following command:
-
-```bash
-jas install --gh casey/just@1.40.0
-```
-
-By default, this will store the binary in `~/.jas/bin`.
-You can change this by using the `--dir` flag.
-
-You can also specify the SHA of the release you want to install.
-
-```bash
-jas install \
---gh casey/just@1.40.0 \
---sha 0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01
-```
-
-To get this SHA, you can use:
-
-```bash
-jas sha \
---url github.com/casey/just/releases/download/1.40.0/just-1.40.0-aarch64-apple-darwin.tar.gz
-```
-
-Or if you already have the file locally:
-
-```bash
-jas sha --path just-1.40.0-aarch64-apple-darwin.tar.gz
-```
-
 ## Background
 
 This tool is primarily intended to be used in CI as a workaround for GitHub Actions's poor security guarantees.
