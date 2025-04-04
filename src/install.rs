@@ -94,7 +94,7 @@ fn verify_sha(body: &[u8], args: &InstallArgs) {
 fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
     let stem = Path::new(name).file_stem();
     let archive_dir = dir.join(stem.as_ref().unwrap());
-    if name.ends_with(".tar.gz") || name.ends_with(".zip") {
+    if name.ends_with(".tar.gz") || name.ends_with(".tar.xz") || name.ends_with(".zip") {
         if archive_dir.exists() {
             if archive_dir.is_dir() {
                 std::fs::remove_dir_all(&archive_dir).unwrap();
@@ -107,6 +107,12 @@ fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
     if name.ends_with(".tar.gz") {
         std::fs::create_dir_all(&archive_dir).unwrap();
         let decompressed = GzDecoder::new(body);
+        let mut archive = Archive::new(decompressed);
+        archive.unpack(&archive_dir).unwrap();
+        tracing::debug!("Unpacked archive into {}", archive_dir.display());
+        Some(archive_dir)
+    } else if name.ends_with(".tar.xz") {
+        let decompressed = xz2::read::XzDecoder::new(body);
         let mut archive = Archive::new(decompressed);
         archive.unpack(&archive_dir).unwrap();
         tracing::debug!("Unpacked archive into {}", archive_dir.display());
