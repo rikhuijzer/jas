@@ -90,23 +90,6 @@ fn verify_sha(body: &[u8], args: &InstallArgs) {
     }
 }
 
-/// Handle archives containing a single dir.
-fn handle_nested_dir(archive_dir: &Path) {
-    let files = std::fs::read_dir(archive_dir).unwrap();
-    let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
-    if files.len() == 1 {
-        let path = files[0].clone();
-        if path.is_dir() {
-            for entry in std::fs::read_dir(&path).unwrap() {
-                let entry = entry.unwrap();
-                let new_path = archive_dir.join(entry.file_name());
-                std::fs::rename(entry.path(), &new_path).unwrap();
-            }
-            std::fs::remove_dir(&path).unwrap();
-        }
-    }
-}
-
 /// Unpack a gzipped archive into a directory.
 fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
     let stem = Path::new(name).file_stem();
@@ -127,7 +110,6 @@ fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
         let mut archive = Archive::new(decompressed);
         archive.unpack(&archive_dir).unwrap();
         tracing::debug!("Unpacked archive into {}", archive_dir.display());
-        handle_nested_dir(&archive_dir);
         Some(archive_dir)
     } else if name.ends_with(".zip") {
         #[cfg(windows)]
@@ -137,7 +119,6 @@ fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
             let zip = ZipStreamReader::new(body.as_ref());
             zip.extract(&archive_dir).unwrap();
             tracing::debug!("Unpacked archive into {}", archive_dir.display());
-            handle_nested_dir(&archive_dir);
             Some(archive_dir)
         }
         #[cfg(not(windows))]
@@ -175,6 +156,30 @@ fn add_exe_if_needed(path: &Path) -> PathBuf {
     }
 }
 
+fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
+    let files = std::fs::read_dir(archive_dir).unwrap();
+    let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+    if files.len() == 1 {
+        let path = &files[0];
+        // If the archive contains a single dir, read the files in that dir.
+        if path.is_dir() {
+            let files = files_in_archive(path);
+            let dirname = PathBuf::from(path.file_name().unwrap());
+            files
+                .into_iter()
+                .map(|file| {
+                    let filename = file.file_name().unwrap();
+                    archive_dir.join(&dirname).join(filename)
+                })
+                .collect()
+        } else {
+            files
+        }
+    } else {
+        files
+    }
+}
+
 /// Copy the binary from the archive to the target directory.
 fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &str) -> PathBuf {
     let binary = if let Some(filename) = &args.archive_filename {
@@ -183,8 +188,7 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         if binary.exists() {
             binary
         } else {
-            let files = std::fs::read_dir(archive_dir).unwrap();
-            let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+            let files = files_in_archive(archive_dir);
             let files = files
                 .iter()
                 .map(|file| file.display().to_string())
@@ -196,8 +200,7 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
             ));
         }
     } else {
-        let files = std::fs::read_dir(archive_dir).unwrap();
-        let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+        let files = files_in_archive(archive_dir);
         let binary = crate::guess::guess_binary_in_archive(&files, name);
         add_exe_if_needed(&binary)
     };
