@@ -90,11 +90,15 @@ fn verify_sha(body: &[u8], args: &InstallArgs) {
     }
 }
 
+fn is_tar_gz(name: &str) -> bool {
+    name.ends_with(".tar.gz") || name.ends_with(".tgz")
+}
+
 /// Unpack a gzipped archive into a directory.
 fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
     let stem = Path::new(name).file_stem();
     let archive_dir = dir.join(stem.as_ref().unwrap());
-    if name.ends_with(".tar.gz") || name.ends_with(".tar.xz") || name.ends_with(".zip") {
+    if is_tar_gz(name) || name.ends_with(".tar.xz") || name.ends_with(".zip") {
         if archive_dir.exists() {
             if archive_dir.is_dir() {
                 std::fs::remove_dir_all(&archive_dir).unwrap();
@@ -104,7 +108,7 @@ fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
         }
         std::fs::create_dir_all(&archive_dir).unwrap();
     }
-    if name.ends_with(".tar.gz") {
+    if is_tar_gz(name) {
         std::fs::create_dir_all(&archive_dir).unwrap();
         let decompressed = GzDecoder::new(body);
         let mut archive = Archive::new(decompressed);
@@ -193,11 +197,13 @@ fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
 fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &str) -> PathBuf {
     let binary = if let Some(filename) = &args.archive_filename {
         let filename = add_exe_if_needed(Path::new(filename));
-        let binary = archive_dir.join(&filename);
-        if binary.exists() {
-            binary
+        let files = files_in_archive(archive_dir);
+        let binary = files
+            .iter()
+            .find(|file| file.file_name() == filename.file_name());
+        if let Some(binary) = binary {
+            binary.to_path_buf()
         } else {
-            let files = files_in_archive(archive_dir);
             let files = files
                 .iter()
                 .map(|file| file.display().to_string())
