@@ -204,7 +204,6 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         if let Some(binary) = binary {
             binary.to_path_buf()
         } else {
-            let files = files_in_archive(archive_dir);
             let files = files
                 .iter()
                 .map(|file| file.display().to_string())
