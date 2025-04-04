@@ -139,6 +139,44 @@ fn test_install_gh_guess_just() {
 }
 
 #[test]
+fn test_install_gh_guess_typst() {
+    clean_tests_dir("typst");
+
+    let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        "0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01"
+    } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
+        "181b91d0ceebe8a57723fb648ed2ce1a44d849438ce2e658339df4f8db5f1263"
+    } else {
+        tracing::warn!("Skipping test on this platform");
+        return;
+    };
+    let mut cmd = bin();
+    let expected_url = "https://github.com/casey/just/releases/download/1.40.0/";
+    cmd.arg("--verbose")
+        .arg("--ansi=false")
+        .arg("install")
+        .arg("--gh=casey/just@1.40.0")
+        .arg("--dir=tests")
+        .arg(format!("--sha={sha}"))
+        .assert()
+        .success()
+        .stderr(predicate::str::contains(expected_url))
+        .stderr(predicate::str::contains(
+            "you may need to add it to your PATH manually",
+        ));
+    let path = add_exe_if_needed("tests/just");
+    let path = Path::new(&path);
+    assert!(path.exists());
+
+    let mut version_cmd = Command::new(path);
+    version_cmd.arg("--version");
+    version_cmd
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("1.40.0"));
+}
+
+#[test]
 fn test_install_gh_guess_cargo_deny() {
     clean_tests_dir("cargo-deny");
 
