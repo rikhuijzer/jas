@@ -143,9 +143,9 @@ fn test_install_gh_guess_typst() {
     clean_tests_dir("typst");
 
     let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
-        "0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01"
+        "1ed28121940fbf9dec9cd11f5683299db447ad5c00ba4c50a36938e5174a0dc8"
     } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
-        "181b91d0ceebe8a57723fb648ed2ce1a44d849438ce2e658339df4f8db5f1263"
+        "cd1148da61d6844e62c330fc6222e988480acafe33b76daec8eb5d221258feb6"
     } else {
         tracing::warn!("Skipping test on this platform");
         return;
