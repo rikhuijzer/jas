@@ -139,6 +139,39 @@ fn test_install_gh_guess_just() {
 }
 
 #[test]
+fn test_install_gh_guess_typst() {
+    clean_tests_dir("typst");
+
+    let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        "1ed28121940fbf9dec9cd11f5683299db447ad5c00ba4c50a36938e5174a0dc8"
+    } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
+        "cd1148da61d6844e62c330fc6222e988480acafe33b76daec8eb5d221258feb6"
+    } else {
+        tracing::warn!("Skipping test on this platform");
+        return;
+    };
+    let mut cmd = bin();
+    cmd.arg("--verbose")
+        .arg("--ansi=false")
+        .arg("install")
+        .arg("--gh=typst/typst@v0.13.0")
+        .arg("--dir=tests")
+        .arg(format!("--sha={sha}"))
+        .assert()
+        .success();
+    let path = add_exe_if_needed("tests/typst");
+    let path = Path::new(&path);
+    assert!(path.exists());
+
+    let mut version_cmd = Command::new(path);
+    version_cmd.arg("--version");
+    version_cmd
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("0.13.0"));
+}
+
+#[test]
 fn test_install_gh_guess_cargo_deny() {
     clean_tests_dir("cargo-deny");
 
