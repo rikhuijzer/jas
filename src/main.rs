@@ -36,39 +36,43 @@ pub(crate) fn abort(message: &str) -> ! {
 #[derive(Clone, Debug, Parser)]
 pub(crate) struct InstallArgs {
     /// The GitHub repository to install from
-    /// 
+    ///
     /// For example, `crate-ci/typos@v1.31.1`.
     #[arg(long)]
     gh: Option<String>,
     /// The GitHub token to use
-    /// 
+    ///
     /// This is usually desired inside GitHub Actions because otherwise this
-    /// tool cannot determine which assets are available in the release. GitHub
-    /// Actions normally receive this token implicitly according to the GitHub
-    /// Docs:
-    /// 
+    /// tool might be rate limited when determining which assets are available
+    /// in the release. The limit is 60 requests per hour per IP address. For
+    /// home-use this should normally not be an issue, but if you are using a shared
+    /// system such as GitHub Runners it will.
+    ///
+    /// As a side-note, GitHub Actions normally avoid this problem due to them
+    /// receiving the token by default according to the GitHub Docs:
+    ///
     /// "An action can access the GITHUB_TOKEN through the github.token context
     /// even if the workflow does not explicitly pass the GITHUB_TOKEN to the
     /// action. As a good security practice, you should always make sure that
     /// actions only have the minimum access they require by limiting the
     /// permissions granted to the GITHUB_TOKEN. [...]"
-    /// 
+    ///
     /// So this means that if you for example write,
-    /// 
+    ///
     /// ```yaml
     /// - uses: tj-actions/changed-files@v40
     /// ```
-    /// 
+    ///
     /// then this Action will have access to the GITHUB_TOKEN via the `github.token` context.
     #[arg(long, env = "GITHUB_TOKEN", verbatim_doc_comment)]
     gh_token: Option<String>,
     /// The URL to install from
-    /// 
+    ///
     /// For example, "github.com/crate-ci/typos/releases/download/v1.31.1/typos-v1.31.1-x86_64-unknown-linux-musl.tar.gz".
     #[arg(long)]
     url: Option<String>,
     /// The SHA-256 hash of the binary to install
-    /// 
+    ///
     /// [default: no verification if no hash is provided]
     #[arg(long)]
     sha: Option<String>,
@@ -79,12 +83,12 @@ pub(crate) struct InstallArgs {
     #[arg(long)]
     asset_name: Option<String>,
     /// The name of the binary after installation
-    /// 
+    ///
     /// [default: the repo name or guessed from the url]
     #[arg(long)]
     binary_filename: Option<String>,
     /// The name of the binary in the archive
-    /// 
+    ///
     /// [default: use simple heuristic to guess]
     #[arg(long)]
     archive_filename: Option<String>,
