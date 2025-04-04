@@ -21,8 +21,8 @@ To install Typos from GitHub into `~/.jas/bin`, you can use:
 
 ```bash
 jas install \
-  --gh crate-ci/typos@v1.31.1 \
-  --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+--gh crate-ci/typos@v1.31.1 \
+--sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
 ```
 
 This command uses the SHA for the MacOS aarch64 release.
@@ -31,7 +31,7 @@ For example,
 
 ```bash
 jas sha \
-  --url github.com/crate-ci/typos/releases/download/v1.31.1/typos-v1.31.1-x86_64-unknown-linux-musl.tar.gz
+--url github.com/crate-ci/typos/releases/download/v1.31.1/typos-v1.31.1-x86_64-unknown-linux-musl.tar.gz
 ```
 
 ## Usage in GitHub Actions
@@ -47,24 +47,27 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install jas
-        run: |
-          cargo install --debug jas
-          echo "$HOME/.jas/bin" >> $GITHUB_PATH
-
-      - name: Install typos
-        run: |
-          jas install \
-            --gh crate-ci/typos@v1.31.1 \
-            --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
-
-      - name: Run typos
-        run: typos .
+      - run: cargo install --debug jas
+      - run: >
+          jas install
+          --gh crate-ci/typos@v1.31.1
+          --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+          --gh-token ${{ secrets.GITHUB_TOKEN }}
+      - run: typos .
 ```
 
 As stated above, the benefit of this is that you can be sure which version of the binary you are using.
 If someone changes the binary, the SHA will change and your CI will fail.
+
+The `--gh-token` is optional but recommended inside GitHub Actions because otherwise this tool might be rate limited when determining which assets are available in the release.
+The limit is 60 requests per hour per IP address.
+Normal GitHub Actions such as 
+```yml
+- uses: JamesIves/github-pages-deploy-action@v4
+```
+
+receive the `GITHUB_TOKEN` by default [via the `github.token` context](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication).
+If you don't want to use a `GITHUB_TOKEN` it is also possible to manually specify the `--url` instead of `--gh`.
 
 ## More usage examples
 
@@ -81,15 +84,15 @@ You can also specify the SHA of the release you want to install.
 
 ```bash
 jas install \
-  --gh casey/just@1.40.0 \
-  --sha 0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01
+--gh casey/just@1.40.0 \
+--sha 0fb2401a46409bdf574f42f92df0418934166032ec2bcb0fc7919b7664fdcc01
 ```
 
 To get this SHA, you can use:
 
 ```bash
 jas sha \
-  --url github.com/casey/just/releases/download/1.40.0/just-1.40.0-aarch64-apple-darwin.tar.gz
+--url github.com/casey/just/releases/download/1.40.0/just-1.40.0-aarch64-apple-darwin.tar.gz
 ```
 
 Or if you already have the file locally:
@@ -139,11 +142,12 @@ This tool is a workaround for this problem for situations where binaries are ava
 It turns the syntax into:
 
 ```yml
-- run: |
-    jas install \
-      --gh crate-ci/typos@v1.31.1 \
-      --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+- run: >
+    jas install
+    --gh crate-ci/typos@v1.31.1
+    --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
 ```
+
 Now it's clear which version is being used.
 When it downloads a binary, it will verify the SHA-256 checksum.
 If this checksum does not match, the tool will fail.
