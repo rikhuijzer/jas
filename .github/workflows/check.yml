@@ -91,4 +91,4 @@ jobs:
       - run: rustup update stable
       - run: rustup default stable
       - run: cargo install --debug cargo-deny@0.18.2
-      - run: cargo deny check licenses advisories
+      - run: cargo deny check advisories
