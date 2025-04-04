@@ -47,8 +47,8 @@ pub(crate) struct InstallArgs {
     /// in the release. The limit is 60 requests per hour per IP address. For
     /// home-use this should normally not be an issue, but if you are using a
     /// shared system such as GitHub Runners it will. If you don't want to use a
-    /// GITHUB_TOKEN it is also possible to avoid this issue by manually specifying
-    /// the `--url` instead of `--gh`.
+    /// GITHUB_TOKEN it is also possible to avoid this issue by manually
+    /// specifying the `--url` instead of `--gh`.
     ///
     /// As a side-note, GitHub Actions normally avoid this problem due to them
     /// receiving the token by default according to the GitHub Docs:
