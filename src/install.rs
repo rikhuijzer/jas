@@ -266,6 +266,6 @@ pub(crate) fn run(args: &InstallArgs) {
     } else if let Some(url) = &args.url {
         install_url(url, args);
     } else {
-        todo!()
+        abort("Expected either `--gh` or `--url` to be specified");
     }
 }
