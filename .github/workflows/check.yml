@@ -91,10 +91,10 @@ jobs:
       - run: rustup update stable
       - run: rustup default stable
       - run: cargo install --debug --path .
-      - run: |
-          jas install \
-            --gh EmbarkStudios/cargo-deny@0.18.2 \
-            --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+      - run: >
+          jas install
+          --gh EmbarkStudios/cargo-deny@0.18.2
+          --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: cargo-deny check advisories
