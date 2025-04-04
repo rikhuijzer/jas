@@ -90,5 +90,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: rustup update stable
       - run: rustup default stable
-      - run: cargo install --debug cargo-deny@0.18.2
+      - name: Install jas
+        run: cargo install --debug --path .
+      - name: Install cargo-deny
+        run: |
+          jas install \
+            --gh cargo-deny/cargo-deny@v0.18.2 \
+            --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: cargo deny check advisories
