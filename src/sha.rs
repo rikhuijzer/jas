@@ -1,6 +1,5 @@
 use crate::abort;
 use crate::ShaArgs;
-use reqwest::get;
 use sha2::Digest;
 use sha2::Sha256;
 use std::fmt;
@@ -78,20 +77,20 @@ fn prefix_proto_if_needed(url: &str) -> String {
     }
 }
 
-async fn hash_from_url(url: &str) -> Sha256Hash {
+fn hash_from_url(url: &str) -> Sha256Hash {
     let url = prefix_proto_if_needed(url);
     tracing::info!("Downloading {}", url);
-    let response = get(url).await.unwrap();
-    let body = response.bytes().await.unwrap();
+    let mut response = ureq::get(url).call().unwrap();
+    let body = response.body_mut().read_to_vec().unwrap();
     Sha256Hash::from_data(&body)
 }
 
-pub async fn run(args: &ShaArgs) {
+pub fn run(args: &ShaArgs) {
     if let Some(path) = &args.path {
         let digest = hash_from_path(path);
         println!("{}", digest);
     } else if let Some(url) = &args.url {
-        let digest = hash_from_url(url).await;
+        let digest = hash_from_url(url);
         println!("{}", digest);
     } else {
         abort("Specify either a path or a URL");

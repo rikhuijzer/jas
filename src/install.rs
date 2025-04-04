@@ -1,9 +1,7 @@
 use crate::abort;
 use crate::guess::guess_asset;
 use crate::InstallArgs;
-use bytes::Bytes;
 use flate2::read::GzDecoder;
-use reqwest::get;
 use serde_json::Value;
 use std::fs::File;
 use std::io::prelude::*;
@@ -29,17 +27,10 @@ fn find_gh_asset(args: &InstallArgs, assets: &[Value]) -> Value {
     asset.clone()
 }
 
-async fn get_gh_asset_info(
-    args: &InstallArgs,
-    owner: &str,
-    repo: &str,
-    tag: &str,
-) -> (String, String) {
+fn get_gh_asset_info(args: &InstallArgs, owner: &str, repo: &str, tag: &str) -> (String, String) {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
     tracing::debug!("Requesting asset list from {}", url);
-    let client = reqwest::Client::new();
-    let mut request = client
-        .get(url)
+    let mut request = ureq::get(url)
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-Agent", user_agent());
@@ -47,14 +38,21 @@ async fn get_gh_asset_info(
         let token = format!("Bearer {token}");
         request = request.header("Authorization", token);
     }
-    let response = request.send().await;
-    let response = match response {
+    let response = request.call();
+    let mut response = match response {
         Ok(response) => response,
         Err(e) => {
-            abort(&format!("Error requesting asset list: {e}"));
+            abort(&format!(
+                "Error requesting asset list. Is the correct tag specified? Error: {e}"
+            ));
         }
     };
-    let bytes = response.bytes().await.unwrap();
+    let bytes = match response.body_mut().read_to_vec() {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            abort(&format!("Error reading asset list: {e}"));
+        }
+    };
     let body = match serde_json::from_slice::<serde_json::Value>(&bytes) {
         Ok(body) => body,
         Err(e) => {
@@ -81,19 +79,19 @@ fn interpret_path(path: &str) -> PathBuf {
     }
 }
 
-fn verify_sha(body: &Bytes, args: &InstallArgs) {
+fn verify_sha(body: &[u8], args: &InstallArgs) {
     if let Some(expected) = &args.sha {
         let actual = crate::sha::Sha256Hash::from_data(body);
         if expected != &actual {
             abort(&format!(
-                "SHA-256 mismatch: expected {expected}, got {actual}"
+                "SHA-256 mismatch: expected\n{expected}, but got\n{actual}"
             ));
         }
     }
 }
 
 /// Unpack a gzipped archive into a directory.
-fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
+fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
     let stem = Path::new(name).file_stem();
     let archive_dir = dir.join(stem.as_ref().unwrap());
     if name.ends_with(".tar.gz") || name.ends_with(".zip") {
@@ -108,9 +106,10 @@ fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
     }
     if name.ends_with(".tar.gz") {
         std::fs::create_dir_all(&archive_dir).unwrap();
-        let decompressed = GzDecoder::new(body.as_ref());
+        let decompressed = GzDecoder::new(body);
         let mut archive = Archive::new(decompressed);
         archive.unpack(&archive_dir).unwrap();
+        tracing::debug!("Unpacked archive into {}", archive_dir.display());
         Some(archive_dir)
     } else if name.ends_with(".zip") {
         #[cfg(windows)]
@@ -119,7 +118,8 @@ fn unpack_archive(body: &Bytes, dir: &Path, name: &str) -> Option<PathBuf> {
             let archive_dir = dir.join(name.strip_suffix(".zip").unwrap());
             let zip = ZipStreamReader::new(body.as_ref());
             zip.extract(&archive_dir).unwrap();
-            return Some(archive_dir);
+            tracing::debug!("Unpacked archive into {}", archive_dir.display());
+            Some(archive_dir)
         }
         #[cfg(not(windows))]
         abort("Zip archives are (currently) only supported on Windows.");
@@ -156,6 +156,33 @@ fn add_exe_if_needed(path: &Path) -> PathBuf {
     }
 }
 
+/// Return the files in an archive.
+///
+/// Also handles archives with nested directories.
+fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
+    let files = std::fs::read_dir(archive_dir).unwrap();
+    let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+    if files.len() == 1 {
+        let path = &files[0];
+        // If the archive contains a single dir, read the files in that dir.
+        if path.is_dir() {
+            let files = files_in_archive(path);
+            let dirname = PathBuf::from(path.file_name().unwrap());
+            files
+                .into_iter()
+                .map(|file| {
+                    let filename = file.file_name().unwrap();
+                    archive_dir.join(&dirname).join(filename)
+                })
+                .collect()
+        } else {
+            files
+        }
+    } else {
+        files
+    }
+}
+
 /// Copy the binary from the archive to the target directory.
 fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &str) -> PathBuf {
     let binary = if let Some(filename) = &args.archive_filename {
@@ -164,8 +191,7 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         if binary.exists() {
             binary
         } else {
-            let files = std::fs::read_dir(archive_dir).unwrap();
-            let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+            let files = files_in_archive(archive_dir);
             let files = files
                 .iter()
                 .map(|file| file.display().to_string())
@@ -177,8 +203,7 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
             ));
         }
     } else {
-        let files = std::fs::read_dir(archive_dir).unwrap();
-        let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+        let files = files_in_archive(archive_dir);
         let binary = crate::guess::guess_binary_in_archive(&files, name);
         add_exe_if_needed(&binary)
     };
@@ -211,10 +236,20 @@ fn make_executable(path: &Path) {
     }
 }
 
-async fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
+fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
     tracing::info!("Downloading {}", url);
-    let response = get(url).await.unwrap();
-    let body = response.bytes().await.unwrap();
+    let mut response = match ureq::get(url).call() {
+        Ok(response) => response,
+        Err(e) => {
+            abort(&format!("Error downloading {url}: {e}"));
+        }
+    };
+    let body = match response.body_mut().read_to_vec() {
+        Ok(body) => body,
+        Err(e) => {
+            abort(&format!("Error reading {url}: {e}"));
+        }
+    };
     verify_sha(&body, args);
     let dir = interpret_path(&args.dir);
     std::fs::create_dir_all(&dir).unwrap();
@@ -231,7 +266,7 @@ async fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &s
     verify_in_path(&dir);
 }
 
-async fn install_gh(gh: &str, args: &InstallArgs) {
+fn install_gh(gh: &str, args: &InstallArgs) {
     let split = gh.split_once('/').unwrap();
     let owner = split.0;
     let mut repo = split.1;
@@ -241,23 +276,23 @@ async fn install_gh(gh: &str, args: &InstallArgs) {
     } else {
         todo!("Missing tag not yet supported")
     };
-    let (url, name) = get_gh_asset_info(args, owner, repo, tag).await;
-    install_core(&url, args, &name, repo).await;
+    let (url, name) = get_gh_asset_info(args, owner, repo, tag);
+    install_core(&url, args, &name, repo);
 }
 
-async fn install_url(url: &str, args: &InstallArgs) {
+fn install_url(url: &str, args: &InstallArgs) {
     let name = url.split('/').next_back().unwrap();
     let output_name = crate::guess::guess_binary_filename_from_url(url);
-    install_core(url, args, name, &output_name).await;
+    install_core(url, args, name, &output_name);
 }
 
 /// Install a binary.
-pub(crate) async fn run(args: &InstallArgs) {
+pub(crate) fn run(args: &InstallArgs) {
     if let Some(gh) = &args.gh {
-        install_gh(gh, args).await;
+        install_gh(gh, args);
     } else if let Some(url) = &args.url {
-        install_url(url, args).await;
+        install_url(url, args);
     } else {
-        todo!()
+        abort("Expected either `--gh` or `--url` to be specified");
     }
 }
