@@ -90,8 +90,7 @@ then this would be interpreted by GitHub as `46.0.1` and you would automatically
 However, even if you pinned to an older release like `46.0.0`:
 
 ```yml
-- name: Get changed files
-  uses: tj-actions/changed-files@46.0.0
+- uses: tj-actions/changed-files@46.0.0
 ```
 
 you would still not be safe since the attacker has changed the tag for `46.0.0`.
