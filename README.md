@@ -123,3 +123,15 @@ If this checksum does not match, the tool will fail.
 Unlike the GitHub Actions syntax, the version cannot become out of sync with the hash.
 Also, with this method, you know exactly what you run.
 With GitHub Actions, even when the commit hash is pinned, the dependencies could still change if I understand correctly.
+
+## How does this compare to `cargo install`
+
+Compared to GitHub Releases, `cargo install` already provides much better security guarantees.
+As far as I understand, unlike with GitHub Releases it is not possible to change published versions after publication.
+So if an attacker manages to publish a new malicious version on `crates.io`, then this would not affect older versions pinned to an explicit version.
+Instead, the attacker would need to hack `crates.io` itself to change older versions.
+Depending on the threat model it can still be useful to confirm the sha of course.
+
+To answer the question, in most cases I would say that installations via `cargo install crate@x.y.z` are much safer than `uses: owner/repo@x.y.z`.
+The only problem could be that compilation of the crate takes long.
+`jas` avoids this problem by downloading the binaries from the release.
