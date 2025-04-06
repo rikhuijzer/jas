@@ -14,9 +14,21 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: /home/linuxbrew/.linuxbrew/bin/brew shellenv >> $GITHUB_PATH
-      - run: brew install hello
-      - run: hello
+      - run: |
+          URL="https://github.com/rikhuijzer/jas/releases/download/v0.2.0/jas-x86_64-unknown-linux-gnu"
+          SHA="5990f22fd7d754432f7c4d4952ae4cb7a185b7e221950de9ad726c3fdfbef031"
+          DIR="$HOME/.jas/bin"
+          curl -o jas -L $URL
+          echo "$SHA  jas" | sha256sum --check
+          mkdir -p $DIR
+          mv jas $DIR
+          echo "$DIR" >> $GITHUB_PATH
+      - run: >
+          jas install
+          --gh crate-ci/typos@v1.31.1
+          --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+          --gh-token ${{ secrets.GITHUB_TOKEN }}
+      - run: typos .
 
   test:
     strategy:
