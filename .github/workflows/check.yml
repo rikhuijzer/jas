@@ -20,6 +20,7 @@ jobs:
           DIR="$HOME/.jas/bin"
           curl -o jas -L $URL
           echo "$SHA  jas" | sha256sum --check
+          chmod +x jas
           mkdir -p $DIR
           mv jas $DIR
           echo "$DIR" >> $GITHUB_PATH
