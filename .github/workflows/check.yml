@@ -9,19 +9,12 @@ on:
 
 jobs:
   tmp:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-          - os: macos-latest
-          - os: windows-latest
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: brew install hello
+      - run: linuxbrew install hello
 
   test:
     strategy:
