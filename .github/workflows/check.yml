@@ -8,6 +8,21 @@ on:
   workflow_dispatch:
 
 jobs:
+  tmp:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+          - os: windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install hello
+
   test:
     strategy:
       fail-fast: false
