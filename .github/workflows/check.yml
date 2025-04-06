@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           URL="https://github.com/rikhuijzer/jas/releases/download/v0.2.0/jas-x86_64-unknown-linux-gnu"
-          SHA="5990f22fd7d754432f7c4d4952ae4cb7a185b7e221950de9ad726c3fdfbef031"
+          SHA="5990f22fd7d754432f7c4d4952ae4cb7a185b7e221950de9ad726c3fdfbef034"
           DIR="$HOME/.jas/bin"
           curl -o jas -L $URL
           echo "$SHA  jas" | sha256sum --check
