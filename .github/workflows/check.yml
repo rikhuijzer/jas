@@ -14,8 +14,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-      - run: brew install hello
+      - run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew install hello
 
   test:
     strategy:
