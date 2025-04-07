@@ -191,7 +191,6 @@ fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
         let path = &files[0];
         if path.is_dir() {
             let path = archive_dir.join(path.file_name().unwrap());
-            tracing::debug!("path: {path:?}");
             files_in_archive(&path)
         } else {
             files
