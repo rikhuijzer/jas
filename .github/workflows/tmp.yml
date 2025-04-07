@@ -23,6 +23,7 @@ jobs:
       - run: guix install hello
       - run: cat $HOME/.guix-profile/etc/profile
       - run: ls -ahl "$HOME/.guix-profile"
-      - run: echo "$HOME/.guix-profile" >> $GITHUB_PATH
+      - run: echo "$HOME/.guix-profile/bin" >> $GITHUB_PATH
+      # - run: echo "/var/guix/profiles/per-user/root/current-guix/bin" >> $GITHUB_PATH
       - run: hello
 
