@@ -1,0 +1,29 @@
+name: tmp
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tmp:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+          - os: windows-latest
+    runs-on: ${{ matrix.os }}
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt install guix
+      - run: guix install hello
+      - run: cat $HOME/.guix-profile/etc/profile
+      - run: $HOME/.guix-profile >> $GITHUB_PATH
+      - run: hello
+
