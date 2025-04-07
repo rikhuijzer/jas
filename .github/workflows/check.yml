@@ -21,8 +21,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: sudo snap install typst
-      - run: apt install guix
+      - run: sudo apt install guix
       - run: guix install hello
       - run: hello
 
