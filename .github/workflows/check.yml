@@ -22,7 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo snap install typst
-      - run: typst --version
+      - run: apt install guix
+      - run: guix install hello
+      - run: hello
 
   test:
     strategy:
