@@ -20,10 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt install guix
-      - run: guix install hello
-      - run: cat $HOME/.guix-profile/etc/profile
-      - run: ls -ahl "$HOME/.guix-profile"
       - run: echo "$HOME/.guix-profile/bin" >> $GITHUB_PATH
-      # - run: echo "/var/guix/profiles/per-user/root/current-guix/bin" >> $GITHUB_PATH
+      - run: guix install hello
       - run: hello
 
