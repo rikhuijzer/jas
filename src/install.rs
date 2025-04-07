@@ -227,15 +227,15 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         add_exe_if_needed(&executable)
     };
     let filename = executable.file_name().unwrap();
-    let mut src =
-        File::open(&executable).expect(&format!("Failed to open binary at {executable:?}"));
+    let mut src = File::open(&executable)
+        .unwrap_or_else(|_| panic!("Failed to open binary at {executable:?}"));
     let dst_path = if let Some(executable_filename) = &args.executable_filename {
         dir.join(executable_filename)
     } else {
         dir.join(filename)
     };
-    let mut dst =
-        File::create(&dst_path).expect(&format!("Failed to create executable at {dst_path:?}"));
+    let mut dst = File::create(&dst_path)
+        .unwrap_or_else(|_| panic!("Failed to create executable at {dst_path:?}"));
     std::io::copy(&mut src, &mut dst).unwrap();
     let dst = dst_path.display();
     tracing::info!("Placed binary at {dst}");

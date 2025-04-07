@@ -211,7 +211,7 @@ fn test_install_pandoc() {
     let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
         "88af17f1885afacb25f70ce4c8c44428feb6da860b6cf690e30da77998456c7f"
     } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
-        "43c4a79c4b9fd1fcb3dddb305a1b4d8f7ac4a72accd61bb50a0b698789ca894c"
+        "5def6e1ff535e397becce292ee97767a947306150b9fb1488003b67ac3417c5e"
     } else {
         tracing::warn!("Skipping test on this platform");
         return;
