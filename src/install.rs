@@ -166,7 +166,11 @@ fn add_exe_if_needed(path: &Path) -> PathBuf {
 /// Also handles archives with nested directories.
 fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
     let files = std::fs::read_dir(archive_dir).unwrap();
-    let files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+    let mut files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
+    let has_bin = files.iter().position(|f| f.file_name().map_or(false, |s| s.to_str() == Some("bin")));
+    if let Some(has_bin) = has_bin {
+        files = vec![files[has_bin].clone()]
+    };
     if files.len() == 1 {
         let path = &files[0];
         // If the archive contains a single dir, read the files in that dir.
