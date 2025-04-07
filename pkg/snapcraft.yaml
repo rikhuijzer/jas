@@ -18,7 +18,7 @@
 # $ snapcraft
 
 name: jas
-version: git
+version: '0.2.0'
 summary: Just an installer
 description: |
    This tool is meant to be used in situations where you want to install a
