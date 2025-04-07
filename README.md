@@ -2,9 +2,8 @@
 
 Just an installer.
 
-This tool is meant to be used in situations where you want to install a binary in a reliable way.
-By reliable, I mean that you want to specify the SHA-256 checksum so that you can be sure that you are using the correct binary.
-I wrote this tool in response to yet another GitHub Action security issue.
+This tool is meant to be used in situations where you want to install a script or binary in a reliable way, that is, you want to specify the SHA-256 checksum so that you can be sure that you are executing the thing you expected.
+I wrote this tool in response to yet another GitHub Action supply chain attack.
 See the [Background](#background) section for more details.
 
 ## Installation
@@ -74,7 +73,7 @@ If you don't want to use a `GITHUB_TOKEN` it is also possible to manually specif
 This tool is primarily intended to be used in CI as a workaround for GitHub Actions's poor security guarantees.
 For example, recently the `tj-actions/changed-files` Action caused many repositories to leak their secrets.
 As with many problems, multiple things have to go wrong for this to happen.
-First, someone gained access to `changed-files` and [inserted malicious code into it](https://github.com/tj-actions/changed-files/issues/2464#issuecomment-2727020537).
+First, someone gained access to `changed-files` and [inserted malicious code](https://github.com/tj-actions/changed-files/issues/2464#issuecomment-2727020537).
 Then, the attacker was able to not only change the latest release, but also tags [for older releases](https://github.com/tj-actions/changed-files/issues/2463).
 This is a fundamental problem for GitHub Actions.
 It is possible to retroactively change the tags.
@@ -102,10 +101,16 @@ For example, `changed-files` now advises to use this:
 - uses: tj-actions/changed-files@823fcebdb31bb35fdf2229d9f769b400309430d0 # v46
 ```
 
-This of course is better, but I personally dislike using commit hashes.
-The main problem is that it's hard to tell which version is being used, which is why it is typical to write a comment with the version number.
+Pinning is a lot safer, but unfortunately Git at the time of writing still uses SHA-1. Although Git runs a hardened version of SHA-1, [git-scm.com states that](https://git-scm.com/docs/hash-function-transition):
 
-This tool is a workaround for this problem for situations where binaries are available.
+> Thus it’s considered prudent to move past any variant of SHA-1 to a new hash.
+> There's no guarantee that future attacks on SHA-1 won’t be published in the future, and those attacks may not have viable mitigations.
+
+Furthermore, I personally dislike this hash pinning approach since it doesn't specify the version. 
+That's why it is very common to see the version number specified in the comment, as is done here.
+The problem with this approach is that the comment can now become out of sync with the actual version.
+
+This tool is a workaround for this problem for situations where executables (binaries or scripts) are available.
 It turns the syntax into:
 
 ```yml
