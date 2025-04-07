@@ -15,9 +15,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - run: mv pkg/snapcraft.yaml .
-    - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # main
+    - uses: snapcore/action-build@v1
       id: build
-    - uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # main
+    - uses: snapcore/action-publish@v1
       env:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
       with:
