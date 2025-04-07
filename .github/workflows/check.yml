@@ -23,6 +23,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt install guix
       - run: guix install hello
+      - run: cat $HOME/.guix-profile/etc/profile
+      - run: . $HOME/.guix-profile/etc/profile
       - run: hello
 
   test:
