@@ -108,9 +108,9 @@ fn test_guess_asset_pandoc() {
     assert_eq!(index, 4);
 }
 
-pub(crate) fn guess_binary_in_archive(files: &[PathBuf], name: &str) -> PathBuf {
+pub(crate) fn guess_executable_in_archive(files: &[PathBuf], name: &str) -> PathBuf {
     tracing::debug!(
-        "Trying to guess binary in archive with name {name} from files:\n{}",
+        "Trying to guess executable in archive with name {name} from files:\n{}",
         files
             .iter()
             .map(|f| f.display().to_string())
@@ -174,7 +174,7 @@ fn test_guess_binary_filename_typos() {
     ];
     let files = files.iter().map(PathBuf::from).collect::<Vec<_>>();
     let name = "typos";
-    let binary = guess_binary_in_archive(&files, name);
+    let binary = guess_executable_in_archive(&files, name);
     assert_eq!(
         binary,
         PathBuf::from("typos-v1.31.1-x86_64-apple-darwin.tar.gz")
@@ -186,7 +186,7 @@ fn test_guess_binary_filename_just() {
     let files = vec!["Cargo.lock", "Cargo.toml", "just", "just.1", "LICENSE"];
     let files = files.iter().map(PathBuf::from).collect::<Vec<_>>();
     let name = "just";
-    let binary = guess_binary_in_archive(&files, name);
+    let binary = guess_executable_in_archive(&files, name);
     assert_eq!(binary, PathBuf::from("just"));
 }
 

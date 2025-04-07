@@ -155,18 +155,25 @@ fn verify_in_path(dir: &Path) {
 
 fn add_exe_if_needed(path: &Path) -> PathBuf {
     if cfg!(target_os = "windows") {
-        path.with_extension("exe")
+        // File could be a .py script, so don't add .exe.
+        if path.extension().is_some() {
+            path.to_path_buf()
+        } else {
+            path.with_extension("exe")
+        }
     } else {
         path.to_path_buf()
     }
 }
 
 /// If the archive contains a bin directory, ignore all other files.
-fn trim_if_bin(files: &mut Vec<PathBuf>) {
+fn filter_if_bin(files: &mut Vec<PathBuf>) {
     let has_bin = files
         .iter()
         .position(|f| f.file_name().is_some_and(|s| s.to_str() == Some("bin")));
     if let Some(has_bin) = has_bin {
+        tracing::debug!("has_bin: {has_bin:?}");
+        tracing::debug!("files: {}", files[has_bin].display());
         *files = vec![files[has_bin].clone()];
     }
 }
@@ -178,10 +185,10 @@ fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
     let files = std::fs::read_dir(archive_dir)
         .unwrap_or_else(|_| abort(&format!("Failed to read archive at {archive_dir:?}")));
     let mut files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
-    trim_if_bin(&mut files);
+    filter_if_bin(&mut files);
+    // If the archive contains a single dir, read the files in that dir.
     if files.len() == 1 {
         let path = &files[0];
-        // If the archive contains a single dir, read the files in that dir.
         if path.is_dir() {
             let files = files_in_archive(path);
             let dirname = PathBuf::from(path.file_name().unwrap());
@@ -189,7 +196,12 @@ fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
                 .into_iter()
                 .map(|file| {
                     let filename = file.file_name().unwrap();
-                    archive_dir.join(&dirname).join(filename)
+                    tracing::debug!("archive_dir: {archive_dir:?}");
+                    tracing::debug!("dirname: {dirname:?}");
+                    tracing::debug!("file: {filename:?}");
+                    let path = archive_dir.join(&dirname).join(filename);
+                    tracing::debug!("returning path: {path:?}");
+                    path
                 })
                 .collect()
         } else {
@@ -202,17 +214,17 @@ fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
 
 /// Copy the binary from the archive to the target directory.
 fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &str) -> PathBuf {
-    let binary = if let Some(filename) = &args.archive_filename {
+    let executable = if let Some(filename) = &args.archive_filename {
         let filename = add_exe_if_needed(Path::new(filename));
         let files = files_in_archive(archive_dir);
-        let binary = files
+        let executable = files
             .iter()
             .find(|file| file.file_name() == filename.file_name());
-        if let Some(binary) = binary {
-            binary.to_path_buf()
+        if let Some(executable) = executable {
+            executable.to_path_buf()
         } else {
             abort(&format!(
-                "Could not find binary in archive; file {} not in\n{}",
+                "Could not find executable in archive; file {} not in\n{}",
                 filename.display(),
                 files
                     .iter()
@@ -223,11 +235,11 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         }
     } else {
         let files = files_in_archive(archive_dir);
-        let binary = crate::guess::guess_binary_in_archive(&files, name);
-        add_exe_if_needed(&binary)
+        let executable = crate::guess::guess_executable_in_archive(&files, name);
+        add_exe_if_needed(&executable)
     };
-    let filename = binary.file_name().unwrap();
-    let mut src = File::open(&binary).expect(&format!("Failed to open binary at {binary:?}"));
+    let filename = executable.file_name().unwrap();
+    let mut src = File::open(&executable).expect(&format!("Failed to open binary at {executable:?}"));
     let dst_path = if let Some(executable_filename) = &args.executable_filename {
         dir.join(executable_filename)
     } else {
