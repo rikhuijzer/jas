@@ -261,13 +261,13 @@ fn test_install_gh_no_guesses() {
         .arg("--gh=crate-ci/typos@v1.31.0")
         .arg(format!("--asset-name={asset_name}"))
         .arg("--archive-filename=this_file_does_not_exist")
-        .arg("--binary-filename=no_guess_typos")
+        .arg("--executable-filename=no_guess_typos")
         .arg(format!("--sha={sha}"))
         .arg("--dir=tests")
         .assert()
         .failure()
         .stderr(predicate::str::contains(
-            "Could not find binary in archive; file this_file_does_not_exist not in",
+            "Could not find executable in archive; file this_file_does_not_exist not in",
         ));
 
     let mut cmd = bin();
@@ -276,7 +276,7 @@ fn test_install_gh_no_guesses() {
         .arg("install")
         .arg("--gh=crate-ci/typos@v1.31.0")
         .arg("--archive-filename=typos")
-        .arg("--binary-filename=no_guess_typos")
+        .arg("--executable-filename=no_guess_typos")
         .arg(format!("--sha={sha}"))
         .arg("--dir=tests")
         .assert()
