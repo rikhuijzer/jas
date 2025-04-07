@@ -31,8 +31,11 @@ license: MIT
 
 parts:
   jas:
-    source: http://ftp.gnu.org/gnu/hello/hello-2.10.tar.gz
-    plugin: autotools
+    build-packages:
+      - pkg-config
+      - cargo
+    plugin: rust
+    source: .
 
 apps:
   jas:
