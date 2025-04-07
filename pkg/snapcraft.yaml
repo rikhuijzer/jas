@@ -2,6 +2,12 @@
 #
 # $ snapcraft login
 #
+# $ snapcraft register jas
+# 
+# But now I also requested manual review via
+# https://dashboard.snapcraft.io/stores/snaps/ and
+# https://dashboard.snapcraft.io/register-snap/
+# 
 # Not using `snaps=jas` because that's only allowed after the snap is created,
 # but to do that, I first need to export the login.
 #
