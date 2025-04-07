@@ -27,6 +27,7 @@ description: |
 confinement: strict
 base: core22
 grade: devel
+license: MIT
 
 parts:
   jas:
@@ -41,3 +42,6 @@ parts:
 apps:
   jas:
     command: bin/jas
+    plugs:
+      - network
+      - home
