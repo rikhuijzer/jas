@@ -24,7 +24,7 @@ description: |
    This tool is meant to be used in situations where you want to install a
    binary in a reliable way, that is, by specifying the SHA-256 checksum. The
    checksum ensures that the binary is exactly the one you expect it to be.
-confinement: devmode
+confinement: strict
 base: core22
 grade: devel
 
