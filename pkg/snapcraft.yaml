@@ -29,9 +29,7 @@ parts:
       - pkg-config
       - cargo
     plugin: rust
-    rust-path:
-      - '..'
-    source: '..'
+    source: .
     override-build: |
       craftctl default
 
