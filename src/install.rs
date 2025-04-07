@@ -183,27 +183,15 @@ fn filter_if_bin(files: &mut Vec<PathBuf>) {
 /// Also handles archives with nested directories.
 fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
     let files = std::fs::read_dir(archive_dir)
-        .unwrap_or_else(|_| abort(&format!("Failed to read archive at {archive_dir:?}")));
+        .unwrap_or_else(|_| abort(&format!("Failed to read directory at {archive_dir:?}")));
     let mut files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
     filter_if_bin(&mut files);
     // If the archive contains a single dir, read the files in that dir.
     if files.len() == 1 {
         let path = &files[0];
         if path.is_dir() {
-            let files = files_in_archive(path);
-            let dirname = PathBuf::from(path.file_name().unwrap());
-            files
-                .into_iter()
-                .map(|file| {
-                    let filename = file.file_name().unwrap();
-                    tracing::debug!("archive_dir: {archive_dir:?}");
-                    tracing::debug!("dirname: {dirname:?}");
-                    tracing::debug!("file: {filename:?}");
-                    let path = archive_dir.join(&dirname).join(filename);
-                    tracing::debug!("returning path: {path:?}");
-                    path
-                })
-                .collect()
+            let path = archive_dir.join(path);
+            files_in_archive(&path)
         } else {
             files
         }
@@ -239,7 +227,8 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         add_exe_if_needed(&executable)
     };
     let filename = executable.file_name().unwrap();
-    let mut src = File::open(&executable).expect(&format!("Failed to open binary at {executable:?}"));
+    let mut src =
+        File::open(&executable).expect(&format!("Failed to open binary at {executable:?}"));
     let dst_path = if let Some(executable_filename) = &args.executable_filename {
         dir.join(executable_filename)
     } else {
