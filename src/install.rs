@@ -175,7 +175,8 @@ fn trim_if_bin(files: &mut Vec<PathBuf>) {
 ///
 /// Also handles archives with nested directories.
 fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
-    let files = std::fs::read_dir(archive_dir).unwrap();
+    let files = std::fs::read_dir(archive_dir)
+        .unwrap_or_else(|_| abort(&format!("Failed to read archive at {archive_dir:?}")));
     let mut files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
     trim_if_bin(&mut files);
     if files.len() == 1 {
@@ -232,7 +233,8 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
     } else {
         dir.join(filename)
     };
-    let mut dst = File::create(&dst_path).expect(&format!("Failed to create executable at {dst_path:?}"));
+    let mut dst =
+        File::create(&dst_path).expect(&format!("Failed to create executable at {dst_path:?}"));
     std::io::copy(&mut src, &mut dst).unwrap();
     let dst = dst_path.display();
     tracing::info!("Placed binary at {dst}");
