@@ -19,7 +19,7 @@ jobs:
       id: build
     - uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # main
       env:
-        SNAPCRAFT_STORE_CREDENTIALS: "foo"
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
       with:
         snap: ${{ steps.build.outputs.snap }}
         release: edge

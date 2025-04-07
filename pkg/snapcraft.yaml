@@ -1,7 +1,11 @@
 # To get the login:
 #
 # $ snapcraft login
-# $ snapcraft export-login --snaps=jas \
+#
+# Not using `snaps=jas` because that's only allowed after the snap is created,
+# but to do that, I first need to export the login.
+#
+# $ snapcraft export-login \
 #      --acls package_access,package_push,package_update,package_release \
 #      jas.secret
 #
@@ -12,6 +16,7 @@
 # $ mv snapcraft.yaml ../ # sigh
 # $ cd ../
 # $ snapcraft
+
 name: jas
 version: git
 summary: Just an installer
