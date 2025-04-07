@@ -1,0 +1,40 @@
+# To get the login:
+#
+# $ snapcraft login
+# $ snapcraft export-login --snaps=jas \
+#      --acls package_access,package_push,package_update,package_release \
+#      jas.secret
+#
+# For the first time, I went into an Ubuntu Hetzner image and ran:
+# $ sudo apt update
+# $ sudo apt install neovim
+# $ sudo snap install snapcraft --classic
+# $ mv snapcraft.yaml ../ # sigh
+# $ cd ../
+# $ snapcraft
+name: jas
+version: git
+summary: Just an installer
+description: |
+   This tool is meant to be used in situations where you want to install a
+   binary in a reliable way, that is, by specifying the SHA-256 checksum. The
+   checksum ensures that the binary is exactly the one you expect it to be.
+confinement: devmode
+base: core22
+grade: devel
+
+parts:
+  jas:
+    build-packages:
+      - pkg-config
+      - cargo
+    plugin: rust
+    rust-path:
+      - '..'
+    source: '..'
+    override-build: |
+      craftctl default
+
+apps:
+  jas:
+    command: bin/jas
