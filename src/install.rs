@@ -124,7 +124,7 @@ fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
     } else if name.ends_with(".zip") {
         use zip::unstable::stream::ZipStreamReader;
         let archive_dir = dir.join(name.strip_suffix(".zip").unwrap());
-        let zip = ZipStreamReader::new(body.as_ref());
+        let zip = ZipStreamReader::new(body);
         zip.extract(&archive_dir).unwrap();
         tracing::debug!("Unpacked archive into {}", archive_dir.display());
         Some(archive_dir)
@@ -161,16 +161,23 @@ fn add_exe_if_needed(path: &Path) -> PathBuf {
     }
 }
 
+/// If the archive contains a bin directory, ignore all other files.
+fn trim_if_bin(files: &mut Vec<PathBuf>) {
+    let has_bin = files
+        .iter()
+        .position(|f| f.file_name().is_some_and(|s| s.to_str() == Some("bin")));
+    if let Some(has_bin) = has_bin {
+        *files = vec![files[has_bin].clone()];
+    }
+}
+
 /// Return the files in an archive.
 ///
 /// Also handles archives with nested directories.
 fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
     let files = std::fs::read_dir(archive_dir).unwrap();
     let mut files = files.map(|file| file.unwrap().path()).collect::<Vec<_>>();
-    let has_bin = files.iter().position(|f| f.file_name().map_or(false, |s| s.to_str() == Some("bin")));
-    if let Some(has_bin) = has_bin {
-        files = vec![files[has_bin].clone()]
-    };
+    trim_if_bin(&mut files);
     if files.len() == 1 {
         let path = &files[0];
         // If the archive contains a single dir, read the files in that dir.
@@ -203,14 +210,14 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         if let Some(binary) = binary {
             binary.to_path_buf()
         } else {
-            let files = files
-                .iter()
-                .map(|file| file.display().to_string())
-                .collect::<Vec<_>>();
             abort(&format!(
                 "Could not find binary in archive; file {} not in\n{}",
                 filename.display(),
-                files.join("\n")
+                files
+                    .iter()
+                    .map(|f| f.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join("\n")
             ));
         }
     } else {
@@ -219,13 +226,13 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         add_exe_if_needed(&binary)
     };
     let filename = binary.file_name().unwrap();
-    let mut src = File::open(&binary).unwrap();
-    let dst_path = if let Some(filename) = &args.binary_filename {
-        dir.join(filename)
+    let mut src = File::open(&binary).expect(&format!("Failed to open binary at {binary:?}"));
+    let dst_path = if let Some(executable_filename) = &args.executable_filename {
+        dir.join(executable_filename)
     } else {
         dir.join(filename)
     };
-    let mut dst = File::create(&dst_path).unwrap();
+    let mut dst = File::create(&dst_path).expect(&format!("Failed to create executable at {dst_path:?}"));
     std::io::copy(&mut src, &mut dst).unwrap();
     let dst = dst_path.display();
     tracing::info!("Placed binary at {dst}");
