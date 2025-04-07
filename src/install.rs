@@ -122,17 +122,12 @@ fn unpack_archive(body: &[u8], dir: &Path, name: &str) -> Option<PathBuf> {
         tracing::debug!("Unpacked archive into {}", archive_dir.display());
         Some(archive_dir)
     } else if name.ends_with(".zip") {
-        #[cfg(windows)]
-        {
-            use zip::unstable::stream::ZipStreamReader;
-            let archive_dir = dir.join(name.strip_suffix(".zip").unwrap());
-            let zip = ZipStreamReader::new(body.as_ref());
-            zip.extract(&archive_dir).unwrap();
-            tracing::debug!("Unpacked archive into {}", archive_dir.display());
-            Some(archive_dir)
-        }
-        #[cfg(not(windows))]
-        abort("Zip archives are (currently) only supported on Windows.");
+        use zip::unstable::stream::ZipStreamReader;
+        let archive_dir = dir.join(name.strip_suffix(".zip").unwrap());
+        let zip = ZipStreamReader::new(body.as_ref());
+        zip.extract(&archive_dir).unwrap();
+        tracing::debug!("Unpacked archive into {}", archive_dir.display());
+        Some(archive_dir)
     } else {
         None
     }

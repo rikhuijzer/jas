@@ -205,6 +205,39 @@ fn test_install_gh_guess_cargo_deny() {
 }
 
 #[test]
+fn test_install_pandoc() {
+    clean_tests_dir("pandoc");
+
+    let sha = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        "88af17f1885afacb25f70ce4c8c44428feb6da860b6cf690e30da77998456c7f"
+    } else if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
+        "43c4a79c4b9fd1fcb3dddb305a1b4d8f7ac4a72accd61bb50a0b698789ca894c"
+    } else {
+        tracing::warn!("Skipping test on this platform");
+        return;
+    };
+    let mut cmd = bin();
+    cmd.arg("--verbose")
+        .arg("--ansi=false")
+        .arg("install")
+        .arg("--gh=jgm/pandoc@3.6.4")
+        .arg("--dir=tests")
+        .arg(format!("--sha={sha}"))
+        .assert()
+        .success();
+    let path = add_exe_if_needed("tests/pandoc");
+    let path = Path::new(&path);
+    assert!(path.exists());
+
+    let mut version_cmd = Command::new(path);
+    version_cmd.arg("--version");
+    version_cmd
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("3.6.4"));
+}
+
+#[test]
 fn test_install_gh_no_guesses() {
     clean_tests_dir("no_guess_typos");
 

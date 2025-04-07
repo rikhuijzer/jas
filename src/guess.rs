@@ -4,7 +4,7 @@ use std::path::PathBuf;
 #[derive(Debug, PartialEq)]
 enum TargetOs {
     Linux,
-    Macos,
+    MacOS,
     Windows,
 }
 
@@ -19,16 +19,24 @@ fn contains_x86_64(name: &str) -> bool {
     name.contains("x86_64") || name.contains("amd64")
 }
 
+fn contains_macos(name: &str) -> bool {
+    name.contains("macos") || name.contains("darwin")
+}
+
 fn guess_asset_enum(names: &[&str], target_os: TargetOs, target_arch: TargetArch) -> usize {
     let searcher = |name: &&str| {
+        let name = &name.to_lowercase();
+        if name.ends_with(".pkg") {
+            return false;
+        }
         if target_os == TargetOs::Linux && target_arch == TargetArch::X86_64 {
             name.contains("linux") && contains_x86_64(name)
-        } else if target_os == TargetOs::Macos && target_arch == TargetArch::X86_64 {
-            (name.contains("macos") || name.contains("darwin")) && contains_x86_64(name)
-        } else if target_os == TargetOs::Macos && target_arch == TargetArch::Aarch64 {
-            (name.contains("macos") || name.contains("darwin")) && name.contains("aarch64")
+        } else if target_os == TargetOs::MacOS && target_arch == TargetArch::X86_64 {
+            contains_macos(name) && contains_x86_64(name)
+        } else if target_os == TargetOs::MacOS && target_arch == TargetArch::Aarch64 {
+            contains_macos(name) && (name.contains("aarch64") || name.contains("arm64"))
         } else if target_os == TargetOs::Linux && target_arch == TargetArch::Aarch64 {
-            name.contains("linux") && name.contains("aarch64")
+            name.contains("linux") && (name.contains("aarch64") || name.contains("arm64"))
         } else if target_os == TargetOs::Linux && target_arch == TargetArch::Arm {
             name.contains("linux") && name.contains("arm")
         } else if target_os == TargetOs::Windows && target_arch == TargetArch::X86_64 {
@@ -46,7 +54,7 @@ pub fn guess_asset(names: &[&str]) -> usize {
     let target_os = if cfg!(target_os = "linux") {
         TargetOs::Linux
     } else if cfg!(target_os = "macos") {
-        TargetOs::Macos
+        TargetOs::MacOS
     } else if cfg!(target_os = "windows") {
         TargetOs::Windows
     } else {
@@ -75,7 +83,7 @@ fn test_guess_asset_typos() {
         "typos-v1.31.1-x86_64-pc-windows-msvc.zip",
         "typos-v1.31.1-x86_64-unknown-linux-musl.tar.gz",
     ];
-    let index = guess_asset_enum(&names, TargetOs::Macos, TargetArch::Aarch64);
+    let index = guess_asset_enum(&names, TargetOs::MacOS, TargetArch::Aarch64);
     assert_eq!(index, 0);
     let index = guess_asset_enum(&names, TargetOs::Linux, TargetArch::X86_64);
     assert_eq!(index, 4);
@@ -89,11 +97,15 @@ fn test_guess_asset_pandoc() {
         "pandoc-3.6.4-1-amd64.deb",
         "pandoc-3.6.4-linux-amd64.tar.gz",
         "pandoc-3.6.4-linux-arm64.tar.gz",
+        "pandoc-3.6.4-arm64-macOS.pkg",
+        "pandoc-3.6.4-arm64-macOS.zip",
     ];
     let index = guess_asset_enum(&names, TargetOs::Linux, TargetArch::X86_64);
     assert_eq!(index, 1);
     let index = guess_asset_enum(&names, TargetOs::Linux, TargetArch::Arm);
     assert_eq!(index, 2);
+    let index = guess_asset_enum(&names, TargetOs::MacOS, TargetArch::Aarch64);
+    assert_eq!(index, 4);
 }
 
 pub(crate) fn guess_binary_in_archive(files: &[PathBuf], name: &str) -> PathBuf {

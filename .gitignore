@@ -3,6 +3,7 @@ tmp*
 tests/cargo-deny*
 tests/just*
 tests/no_guess_typos*
+tests/pandoc*
 tests/trv*
 tests/typos*
 tests/typst*
