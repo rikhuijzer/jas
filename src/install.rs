@@ -200,12 +200,29 @@ fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
     }
 }
 
+fn verify_filenames_match(filenames: &[String], executable_filenames: &[String]) {
+    if filenames.len() != executable_filenames.len() {
+        abort(&format!(
+            "Expected {} executable filenames, got {}",
+            executable_filenames.len(),
+            filenames.len()
+        ));
+    }
+}
+
 /// Return (src, dst) pairs for each `filename` in `archive_filename`.
 fn handle_filenames(
     dir: &Path,
     archive_dir: &Path,
+    args: &InstallArgs,
     filenames: &[String],
 ) -> Vec<(PathBuf, PathBuf)> {
+    let executable_filename = if let Some(executable_filenames) = &args.executable_filename {
+        verify_filenames_match(filenames, executable_filenames);
+        Some(executable_filenames[0].clone())
+    } else {
+        None
+    };
     filenames
         .iter()
         .map(|filename| {
@@ -216,8 +233,13 @@ fn handle_filenames(
                 .find(|file| file.file_name() == filename.file_name());
             if let Some(executable) = executable {
                 let src = executable.to_path_buf();
-                let dst = add_exe_if_needed(Path::new(&filename));
-                let dst = dir.join(dst);
+                let dst = if let Some(executable_filename) = &executable_filename {
+                    let dst = add_exe_if_needed(Path::new(executable_filename));
+                    dir.join(dst)
+                } else {
+                    let dst = add_exe_if_needed(Path::new(&filename));
+                    dir.join(dst)
+                };
                 (src, dst)
             } else {
                 abort(&format!(
@@ -252,12 +274,17 @@ fn make_executable(path: &Path) {
 /// Copy the binary from the archive to the target directory.
 fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &str) {
     let src_dst = if let Some(filenames) = &args.archive_filename {
-        handle_filenames(dir, archive_dir, filenames)
+        handle_filenames(dir, archive_dir, args, filenames)
     } else {
         let files = files_in_archive(archive_dir);
         let src = crate::guess::guess_executable_in_archive(&files, name);
-        let dst = if let Some(executable_filename) = &args.executable_filename {
-            dir.join(executable_filename)
+        let dst = if let Some(executable_filenames) = &args.executable_filename {
+            if executable_filenames.len() != 1 {
+                abort(&format!(
+                    "Multiple `executable_filename`s can only be specified with multiple `archive_filename`s"
+                ));
+            }
+            dir.join(executable_filenames[0].clone())
         } else {
             dir.join(name)
         };
@@ -335,6 +362,13 @@ fn install_url(url: &str, args: &InstallArgs) {
 
 /// Install a binary.
 pub(crate) fn run(args: &InstallArgs) {
+    // Run the check here to error before download.
+    if let Some(executable_filenames) = &args.executable_filename {
+        if let Some(archive_filenames) = &args.archive_filename {
+            verify_filenames_match(archive_filenames, executable_filenames);
+        }
+    }
+
     if let Some(gh) = &args.gh {
         install_gh(gh, args);
     } else if let Some(url) = &args.url {

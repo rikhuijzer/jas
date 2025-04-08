@@ -86,16 +86,16 @@ pub(crate) struct InstallArgs {
     /// The name of the GitHub release asset to install
     #[arg(long)]
     asset_name: Option<String>,
-    /// The name of the executable after installation
-    ///
-    /// [default: the repo name or guessed from the url]
-    #[arg(long)]
-    executable_filename: Option<String>,
-    /// The name of the binary in the archive
+    /// The name of the binary/binaries in the archive
     ///
     /// [default: use simple heuristic to guess]
     #[arg(long)]
     archive_filename: Option<Vec<String>>,
+    /// The name of the executable/executables after installation
+    ///
+    /// [default: the repo name or guessed from the url]
+    #[arg(long)]
+    executable_filename: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Parser)]
