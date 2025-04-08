@@ -1,8 +1,11 @@
 **/target
 tmp*
 tests/cargo-deny*
+tests/ffmpeg*
+tests/ffprobe*
 tests/just*
 tests/no_guess_typos*
+tests/pandoc*
 tests/trv*
 tests/typos*
 tests/typst*

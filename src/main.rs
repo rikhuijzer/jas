@@ -33,6 +33,8 @@ pub(crate) fn abort(message: &str) -> ! {
     }
 }
 
+static DEFAULT_INSTALL_DIR: &str = "~/.jas/bin";
+
 #[derive(Clone, Debug, Parser)]
 pub(crate) struct InstallArgs {
     /// The GitHub repository to install from
@@ -79,21 +81,28 @@ pub(crate) struct InstallArgs {
     #[arg(long)]
     sha: Option<String>,
     /// The directory to install the binary to
-    #[arg(long, default_value = "~/.jas/bin")]
+    #[arg(long, default_value = DEFAULT_INSTALL_DIR)]
     dir: String,
     /// The name of the GitHub release asset to install
     #[arg(long)]
     asset_name: Option<String>,
-    /// The name of the binary after installation
-    ///
-    /// [default: the repo name or guessed from the url]
-    #[arg(long)]
-    binary_filename: Option<String>,
-    /// The name of the binary in the archive
+    /// The name of the binary/binaries in the archive
     ///
     /// [default: use simple heuristic to guess]
     #[arg(long)]
-    archive_filename: Option<String>,
+    archive_filename: Option<Vec<String>>,
+    /// The name of the executable/executables after installation
+    ///
+    /// [default: the repo name or guessed from the url]
+    #[arg(long)]
+    executable_filename: Option<Vec<String>>,
+}
+
+#[derive(Clone, Debug, Parser)]
+pub(crate) struct ShowArgs {
+    /// Print the default install directory.
+    #[arg(long)]
+    install_dir: bool,
 }
 
 #[derive(Clone, Debug, clap::Subcommand)]
@@ -102,6 +111,8 @@ pub(crate) enum Task {
     Sha(ShaArgs),
     /// Install a binary from a GitHub repository.
     Install(InstallArgs),
+    /// Show information.
+    Show(ShowArgs),
     /// Print the project's license.
     License,
 }
@@ -150,6 +161,12 @@ fn main() {
         }
         Task::Install(args) => {
             install::run(&args);
+        }
+        Task::Show(args) => {
+            if args.install_dir {
+                let path = install::interpret_path(DEFAULT_INSTALL_DIR);
+                println!("{}", path.display());
+            }
         }
         Task::License => {
             println!("{}", include_str!("../LICENSE"));
