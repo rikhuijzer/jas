@@ -238,6 +238,32 @@ fn test_install_pandoc() {
 }
 
 #[test]
+fn test_install_ffmpeg_ffprobe() {
+    clean_tests_dir("ffmpeg");
+    clean_tests_dir("ffprobe");
+
+    // Chose this file because it's relatively small.
+    let url = "https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-6.0.1-armel-static.tar.xz";
+    let mut cmd = bin();
+    cmd.arg("--verbose")
+        .arg("--ansi=false")
+        .arg("install")
+        .arg("--url")
+        .arg(&url)
+        .arg("--dir=tests")
+        .arg("--archive-filename=ffmpeg")
+        .arg("--archive-filename=ffprobe")
+        .arg("--sha=1c2dd0795990796c29d0da8b0842e0bb13daf35eee062087a78cd70131301d58")
+        .assert()
+        .success();
+
+    let path = std::path::Path::new("tests/ffmpeg");
+    assert!(path.exists());
+    let path = std::path::Path::new("tests/ffprobe");
+    assert!(path.exists());
+}
+
+#[test]
 fn test_install_gh_no_guesses() {
     clean_tests_dir("no_guess_typos");
 

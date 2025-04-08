@@ -200,16 +200,19 @@ fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
     }
 }
 
-/// Copy the binary from the archive to the target directory.
-fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &str) -> PathBuf {
-    let executable = if let Some(filename) = &args.archive_filename {
+/// Return (src, dst) pairs for each `filename` in `archive_filename`.
+fn handle_filenames(dir: &Path, archive_dir: &Path, filenames: &[String]) -> Vec<(PathBuf, PathBuf)> {
+    filenames.iter().map(|filename| {
         let filename = add_exe_if_needed(Path::new(filename));
         let files = files_in_archive(archive_dir);
         let executable = files
             .iter()
             .find(|file| file.file_name() == filename.file_name());
         if let Some(executable) = executable {
-            executable.to_path_buf()
+            let src = executable.to_path_buf();
+            let dst = add_exe_if_needed(Path::new(&filename));
+            let dst = dir.join(dst);
+            (src, dst)
         } else {
             abort(&format!(
                 "Could not find executable in archive; file {} not in\n{}",
@@ -221,25 +224,7 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
                     .join("\n")
             ));
         }
-    } else {
-        let files = files_in_archive(archive_dir);
-        let executable = crate::guess::guess_executable_in_archive(&files, name);
-        add_exe_if_needed(&executable)
-    };
-    let filename = executable.file_name().unwrap();
-    let mut src = File::open(&executable)
-        .unwrap_or_else(|_| panic!("Failed to open binary at {executable:?}"));
-    let dst_path = if let Some(executable_filename) = &args.executable_filename {
-        dir.join(executable_filename)
-    } else {
-        dir.join(filename)
-    };
-    let mut dst = File::create(&dst_path)
-        .unwrap_or_else(|_| panic!("Failed to create executable at {dst_path:?}"));
-    std::io::copy(&mut src, &mut dst).unwrap();
-    let dst = dst_path.display();
-    tracing::info!("Placed binary at {dst}");
-    dst_path
+    }).collect::<Vec<_>>()
 }
 
 fn make_executable(path: &Path) {
@@ -254,6 +239,31 @@ fn make_executable(path: &Path) {
                 tracing::warn!("Failed to set executable permissions: {e}\nPlease set the executable permissions manually:\nchmod +x {}", path.display());
             }
         }
+    }
+}
+
+/// Copy the binary from the archive to the target directory.
+fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &str) {
+    let src_dst = if let Some(filenames) = &args.archive_filename {
+        handle_filenames(dir, archive_dir, filenames)
+    } else {
+        let files = files_in_archive(archive_dir);
+        let src = crate::guess::guess_executable_in_archive(&files, name);
+        let dst = if let Some(executable_filename) = &args.executable_filename {
+            dir.join(executable_filename)
+        } else {
+            dir.join(name)
+        };
+        vec![(src, dst)]
+    };
+    for (src, dst) in src_dst {
+        let mut reader = File::open(&src)
+            .unwrap_or_else(|_| panic!("Failed to open binary at {src:?}"));
+        let mut writer = File::create(&dst)
+            .unwrap_or_else(|_| panic!("Failed to create executable at {dst:?}"));
+        std::io::copy(&mut reader, &mut writer).unwrap();
+        tracing::info!("Placed binary at {}", dst.display());
+        make_executable(&dst);
     }
 }
 
@@ -275,6 +285,13 @@ pub(crate) fn download_file(url: &str) -> Vec<u8> {
     }
 }
 
+fn copy_file(body: &[u8], dir: &Path, output_name: &str) {
+    let path = dir.join(output_name);
+    let mut file = File::create(&path).unwrap();
+    file.write_all(&body).unwrap();
+    make_executable(&path);
+}
+
 fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
     let body = download_file(url);
     verify_sha(&body, args);
@@ -282,13 +299,9 @@ fn install_core(url: &str, args: &InstallArgs, name: &str, output_name: &str) {
     std::fs::create_dir_all(&dir).unwrap();
     let archive_dir = unpack_archive(&body, &dir, name);
     if let Some(archive_dir) = archive_dir {
-        let path = copy_from_archive(&dir, &archive_dir, args, output_name);
-        make_executable(&path);
+        copy_from_archive(&dir, &archive_dir, args, output_name);
     } else {
-        let path = dir.join(output_name);
-        let mut file = File::create(&path).unwrap();
-        make_executable(&path);
-        file.write_all(&body).unwrap();
+        copy_file(&body, &dir, output_name);
     }
     verify_in_path(&dir);
 }

@@ -93,7 +93,7 @@ pub(crate) struct InstallArgs {
     ///
     /// [default: use simple heuristic to guess]
     #[arg(long)]
-    archive_filename: Option<String>,
+    archive_filename: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, clap::Subcommand)]
