@@ -71,7 +71,7 @@ fn get_gh_asset_info(args: &InstallArgs, owner: &str, repo: &str, tag: &str) -> 
     (url, name)
 }
 
-fn interpret_path(path: &str) -> PathBuf {
+pub(crate) fn interpret_path(path: &str) -> PathBuf {
     if let Some(prefix) = path.strip_prefix("~/") {
         PathBuf::from(std::env::var("HOME").unwrap()).join(prefix)
     } else {
@@ -201,30 +201,37 @@ fn files_in_archive(archive_dir: &Path) -> Vec<PathBuf> {
 }
 
 /// Return (src, dst) pairs for each `filename` in `archive_filename`.
-fn handle_filenames(dir: &Path, archive_dir: &Path, filenames: &[String]) -> Vec<(PathBuf, PathBuf)> {
-    filenames.iter().map(|filename| {
-        let filename = add_exe_if_needed(Path::new(filename));
-        let files = files_in_archive(archive_dir);
-        let executable = files
-            .iter()
-            .find(|file| file.file_name() == filename.file_name());
-        if let Some(executable) = executable {
-            let src = executable.to_path_buf();
-            let dst = add_exe_if_needed(Path::new(&filename));
-            let dst = dir.join(dst);
-            (src, dst)
-        } else {
-            abort(&format!(
-                "Could not find executable in archive; file {} not in\n{}",
-                filename.display(),
-                files
-                    .iter()
-                    .map(|f| f.display().to_string())
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            ));
-        }
-    }).collect::<Vec<_>>()
+fn handle_filenames(
+    dir: &Path,
+    archive_dir: &Path,
+    filenames: &[String],
+) -> Vec<(PathBuf, PathBuf)> {
+    filenames
+        .iter()
+        .map(|filename| {
+            let filename = add_exe_if_needed(Path::new(filename));
+            let files = files_in_archive(archive_dir);
+            let executable = files
+                .iter()
+                .find(|file| file.file_name() == filename.file_name());
+            if let Some(executable) = executable {
+                let src = executable.to_path_buf();
+                let dst = add_exe_if_needed(Path::new(&filename));
+                let dst = dir.join(dst);
+                (src, dst)
+            } else {
+                abort(&format!(
+                    "Could not find executable in archive; file {} not in\n{}",
+                    filename.display(),
+                    files
+                        .iter()
+                        .map(|f| f.display().to_string())
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                ));
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 fn make_executable(path: &Path) {
@@ -257,10 +264,10 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         vec![(src, dst)]
     };
     for (src, dst) in src_dst {
-        let mut reader = File::open(&src)
-            .unwrap_or_else(|_| panic!("Failed to open binary at {src:?}"));
-        let mut writer = File::create(&dst)
-            .unwrap_or_else(|_| panic!("Failed to create executable at {dst:?}"));
+        let mut reader =
+            File::open(&src).unwrap_or_else(|_| panic!("Failed to open binary at {src:?}"));
+        let mut writer =
+            File::create(&dst).unwrap_or_else(|_| panic!("Failed to create executable at {dst:?}"));
         std::io::copy(&mut reader, &mut writer).unwrap();
         tracing::info!("Placed binary at {}", dst.display());
         make_executable(&dst);
@@ -288,7 +295,7 @@ pub(crate) fn download_file(url: &str) -> Vec<u8> {
 fn copy_file(body: &[u8], dir: &Path, output_name: &str) {
     let path = dir.join(output_name);
     let mut file = File::create(&path).unwrap();
-    file.write_all(&body).unwrap();
+    file.write_all(body).unwrap();
     make_executable(&path);
 }
 
