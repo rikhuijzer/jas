@@ -280,9 +280,9 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         let src = crate::guess::guess_executable_in_archive(&files, name);
         let dst = if let Some(executable_filenames) = &args.executable_filename {
             if executable_filenames.len() != 1 {
-                abort(&format!(
+                abort(
                     "Multiple `executable_filename`s can only be specified with multiple `archive_filename`s"
-                ));
+                );
             }
             dir.join(executable_filenames[0].clone())
         } else {
