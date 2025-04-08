@@ -302,7 +302,6 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
 }
 
 fn download_file_core(url: &str) -> Result<Vec<u8>, String> {
-    tracing::info!("Downloading {}", url);
     let mut response = match ureq::get(url).call() {
         Ok(response) => response,
         Err(e) => return Err(format!("Error downloading {url}: {e}")),
@@ -316,6 +315,7 @@ fn download_file_core(url: &str) -> Result<Vec<u8>, String> {
 }
 
 pub(crate) fn download_file(url: &str) -> Vec<u8> {
+    tracing::info!("Downloading {}", url);
     // Manual retry logic since ureq "3.x has no built-in retries".
     let retries = 3;
     for i in 0..retries {

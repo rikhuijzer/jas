@@ -239,6 +239,10 @@ fn test_install_pandoc() {
 
 #[test]
 fn test_install_ffmpeg_ffprobe() {
+    if cfg!(target_os = "windows") {
+        tracing::warn!("Skipping test on Windows since it will try to find ffmpeg.exe in archive");
+        return;
+    }
     clean_tests_dir("ffmpeg");
     clean_tests_dir("ffprobe");
 
