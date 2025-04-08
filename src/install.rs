@@ -301,22 +301,38 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
     }
 }
 
-pub(crate) fn download_file(url: &str) -> Vec<u8> {
+fn download_file_core(url: &str) -> Result<Vec<u8>, String> {
     tracing::info!("Downloading {}", url);
     let mut response = match ureq::get(url).call() {
         Ok(response) => response,
-        Err(e) => {
-            abort(&format!("Error downloading {url}: {e}"));
-        }
+        Err(e) => return Err(format!("Error downloading {url}: {e}")),
     };
     let limit_in_megabytes = 300;
     let limit = limit_in_megabytes * 1024 * 1024;
     match response.body_mut().with_config().limit(limit).read_to_vec() {
-        Ok(body) => body,
-        Err(e) => {
-            abort(&format!("Error reading {url}: {e}"));
+        Ok(body) => Ok(body),
+        Err(e) => Err(format!("Error reading {url}: {e}")),
+    }
+}
+
+pub(crate) fn download_file(url: &str) -> Vec<u8> {
+    // Manual retry logic since ureq "3.x has no built-in retries".
+    let retries = 3;
+    for i in 0..retries {
+        match download_file_core(url) {
+            Ok(body) => return body,
+            Err(e) => {
+                if e.contains("timeout") && i < retries - 1 {
+                    let wait = i * i + 1;
+                    tracing::warn!("Timeout downloading {url}, retrying in {wait} seconds");
+                    std::thread::sleep(std::time::Duration::from_secs(wait));
+                } else {
+                    abort(&format!("Error downloading {url}: {e}"));
+                }
+            }
         }
     }
+    abort(&format!("Error downloading {url}: timeout"));
 }
 
 fn copy_file(body: &[u8], dir: &Path, output_name: &str) {
