@@ -9,7 +9,7 @@ See the [Background](#background) section for more details.
 ## Installation
 
 ```bash
-cargo install --debug jas@0.2.0
+cargo install --debug jas@0.3.0
 ```
 
 and add `~/.jas/bin` to your PATH.
@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: cargo install --debug jas@0.2.0
+      - run: cargo install --debug jas@0.3.0
       - run: >
           jas install
           --gh crate-ci/typos@v1.31.1

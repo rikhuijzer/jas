@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - 2025-04-07
 
+### Added
+
+- Support multiple `--archive-filename`s ([#22](https://github.com/rikhuijzer/jas/pull/22))
+
 ### Changed
 
 - Renamed `--binary-filename` to `--executable-filename` ([#20](https://github.com/rikhuijzer/jas/pull/20))
+- Retry downloading on timeout ([#22](https://github.com/rikhuijzer/jas/pull/22))
 
 ### Fixed
 

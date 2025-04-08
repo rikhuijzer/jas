@@ -1,6 +1,6 @@
 [package]
 name = "jas"
-version = "0.2.0"
+version = "0.3.0"
 categories = ["command-line-utilities"]
 description = "Just an installer"
 edition = "2021"
