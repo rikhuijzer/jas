@@ -19,13 +19,9 @@
 # $ sudo apt update
 # $ sudo apt install neovim
 # $ sudo snap install snapcraft --classic
-# $ git clone https://github.com/rikhuijzer/jas.git
-# $ mv pkg/snapcraft.yaml .
-# $ snapcraft # installs LXD at first run
-# $ sudo apt install gnome-keyring
-# $ snapcraft login
-# $ snapcraft register jas
-# $ snapcraft upload --release=edge jas_0.2.0_amd64.snap
+# $ mv snapcraft.yaml ../ # sigh
+# $ cd ../
+# $ snapcraft
 
 name: jas
 version: '0.2.0'
