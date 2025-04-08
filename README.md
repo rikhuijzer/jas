@@ -61,6 +61,7 @@ If someone changes the binary, the SHA will change and your CI will fail.
 The `--gh-token` is optional but recommended inside GitHub Actions because otherwise this tool might be rate limited when determining which assets are available in the release.
 The limit is 60 requests per hour per IP address.
 Normal GitHub Actions such as 
+
 ```yml
 - uses: JamesIves/github-pages-deploy-action@v4
 ```
