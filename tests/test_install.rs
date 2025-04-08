@@ -90,7 +90,7 @@ fn test_install_gh_guess_typos() {
         ));
     let path = add_exe_if_needed("tests/typos");
     let path = Path::new(&path);
-    assert!(path.exists());
+    assert!(path.exists(), "path: {path:?}");
 
     let mut version_cmd = Command::new(path);
     version_cmd.arg("--version");

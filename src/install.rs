@@ -288,6 +288,7 @@ fn copy_from_archive(dir: &Path, archive_dir: &Path, args: &InstallArgs, name: &
         } else {
             dir.join(name)
         };
+        let dst = add_exe_if_needed(&dst);
         vec![(src, dst)]
     };
     for (src, dst) in src_dst {
