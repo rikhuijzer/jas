@@ -20,7 +20,6 @@ jobs:
       run: just create-snapcraft dev
     - if: ${{ github.ref_type == 'tag' }}
       run: just create-snapcraft stable
-    - run: mv pkg/snapcraft.yaml .
     - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
       id: build
     - run: snapcraft upload ${{ steps.build.outputs.snap }}
