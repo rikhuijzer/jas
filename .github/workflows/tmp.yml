@@ -19,8 +19,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt install guix
-      - run: echo "$HOME/.guix-profile/bin" >> $GITHUB_PATH
-      - run: guix install hello
-      - run: hello
+      - run: snap install --edge --classic just-an-installer
+      - run: just --version
 
