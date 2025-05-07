@@ -27,7 +27,7 @@
 # $ snapcraft register jas
 # $ snapcraft upload --release=edge jas_0.2.0_amd64.snap
 
-name: jas
+name: 'just-an-installer'
 version: '0.2.0'
 summary: Just an installer
 description: |
