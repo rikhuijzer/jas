@@ -9,3 +9,4 @@ tests/pandoc*
 tests/trv*
 tests/typos*
 tests/typst*
+snapcraft.yaml

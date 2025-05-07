@@ -28,7 +28,7 @@
 # $ snapcraft upload --release=edge jas_0.2.0_amd64.snap
 
 name: 'just-an-installer'
-version: '0.2.0'
+version: '<VERSION>'
 summary: Just an installer
 description: |
    This tool is meant to be used in situations where you want to install a
@@ -37,7 +37,7 @@ description: |
 confinement: strict
 base: core22
 # Can either be 'stable' or 'devel'. 'devel' will not be published to 'stable' channel.
-grade: devel
+grade: '<GRADE>'
 license: MIT
 
 parts:
