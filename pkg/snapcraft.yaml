@@ -36,7 +36,8 @@ description: |
    checksum ensures that the binary is exactly the one you expect it to be.
 confinement: strict
 base: core22
-# grade: devel
+# Can either be 'stable' or 'devel'. 'devel' will not be published to 'stable' channel.
+grade: devel
 license: MIT
 
 parts:
