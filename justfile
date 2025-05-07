@@ -3,48 +3,45 @@ shebang := '''
     set -euo pipefail
 '''
 
-alias r := release
-alias s := serve
-
 default:
     just --list
 
+set positional-arguments
+
 # Populate 'pkg/snapcraft.yaml' and move it to the root.
-create-snapcraft:
+create-snapcraft TASK:
     #!{{shebang}}
 
-    if [[ "$#" -eq 0 ]]; then
-        echo "Usage: just create-snapcraft <TASK>"
-        echo ""
-        echo "Tasks:"
-        echo "  dev: create snapcraft.yaml for dev/edge release"
-        echo "  stable: create snapcraft.yaml for stable release"
-        exit 2
-    fi
-
-    TASK="$1"
+    TASK="{{TASK}}"
     if [[ "$TASK" != "dev" && "$TASK" != "stable" ]]; then
         echo "Invalid task: $TASK"
         exit 3
     fi
 
+    # Check if sd is installed
+    if ! command -v sd &> /dev/null; then
+        echo "Error: 'sd' command not found."
+        echo "This script uses 'sd' since it is more platform agnostic than 'sed'."
+        exit 1
+    fi
 
     METADATA="$(cargo metadata --format-version=1 --no-deps)"
     VERSION="$(echo $METADATA | jq -r '.packages[0].version')"
-    echo "VERSION $VERSION"
+    echo "VERSION: $VERSION"
     TAGNAME="v$VERSION"
-    echo "TAGNAME $TAGNAME"
+    echo "TAGNAME: $TAGNAME"
 
     TEMPLATE="pkg/snapcraft.template.yaml"
-    sed -i "s/<VERSION>/$VERSION/" $TEMPLATE
+    echo "TEMPLATE: $TEMPLATE"
+    sd "<VERSION>" "$VERSION" "$TEMPLATE"
 
     if [[ "$TASK" == "stable" ]]; then
-        sed -i "s/<GRADE>/stable/" $TEMPLATE
+        sd "<GRADE>" "stable" "$TEMPLATE"
     else
-        sed -i "s/<GRADE>/devel/" $TEMPLATE
+        sd "<GRADE>" "devel" "$TEMPLATE"
     fi
 
-    mv --verbose $TEMPLATE snapcraft.yaml
+    cp --verbose "$TEMPLATE" snapcraft.yaml
 
     echo "Created snapcraft.yaml:"
     cat snapcraft.yaml
