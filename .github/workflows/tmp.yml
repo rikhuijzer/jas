@@ -20,5 +20,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo snap install --edge --classic just-an-installer
-      - run: just --version
+      - run: jas --version
 
