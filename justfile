@@ -18,7 +18,6 @@ create-snapcraft TASK:
         exit 3
     fi
 
-    # Check if sd is installed
     if ! command -v sd &> /dev/null; then
         echo "Error: 'sd' command not found."
         echo "This script uses 'sd' since it is more platform agnostic than 'sed'."
