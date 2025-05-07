@@ -37,7 +37,8 @@ description: |
 confinement: strict
 base: core22
 # Can either be 'stable' or 'devel'. 'devel' will not be published to 'stable' channel.
-grade: '<GRADE>'
+# 'devel' also seems to not be automatically pushed to 'edge'.
+grade: 'stable'
 license: MIT
 
 parts:
