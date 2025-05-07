@@ -1,0 +1,56 @@
+# To get the login:
+#
+# $ snapcraft login
+#
+# $ snapcraft register jas
+# 
+# But now I also requested manual review via
+# https://dashboard.snapcraft.io/stores/snaps/ and
+# https://dashboard.snapcraft.io/register-snap/
+# 
+# Not using `snaps=jas` because that's only allowed after the snap is created,
+# but to do that, I first need to export the login.
+#
+# $ snapcraft export-login \
+#      --acls package_access,package_push,package_update,package_release \
+#      jas.secret
+#
+# For the first time, I went into an Ubuntu Hetzner image and ran:
+# $ sudo apt update
+# $ sudo apt install neovim
+# $ sudo snap install snapcraft --classic
+# $ git clone https://github.com/rikhuijzer/jas.git
+# $ mv pkg/snapcraft.yaml .
+# $ snapcraft # installs LXD at first run
+# $ sudo apt install gnome-keyring
+# $ snapcraft login
+# $ snapcraft register jas
+# $ snapcraft upload --release=edge jas_0.2.0_amd64.snap
+
+name: 'just-an-installer'
+version: '<VERSION>'
+summary: Just an installer
+description: |
+   This tool is meant to be used in situations where you want to install a
+   binary in a reliable way, that is, by specifying the SHA-256 checksum. The
+   checksum ensures that the binary is exactly the one you expect it to be.
+confinement: strict
+base: core22
+# Can either be 'stable' or 'devel'. 'devel' will not be published to 'stable' channel.
+grade: '<GRADE>'
+license: MIT
+
+parts:
+  jas:
+    build-packages:
+      - pkg-config
+      - cargo
+    plugin: rust
+    source: .
+
+apps:
+  jas:
+    command: bin/jas
+    plugs:
+      - network
+      - home
