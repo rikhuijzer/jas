@@ -90,7 +90,7 @@ fn test_install_gh_guess_typos() {
         ));
     let path = add_exe_if_needed("tests/typos");
     let path = Path::new(&path);
-    assert!(path.exists());
+    assert!(path.exists(), "path: {path:?}");
 
     let mut version_cmd = Command::new(path);
     version_cmd.arg("--version");
@@ -235,6 +235,36 @@ fn test_install_pandoc() {
         .assert()
         .success()
         .stdout(predicate::str::contains("3.6.4"));
+}
+
+#[test]
+fn test_install_ffmpeg_ffprobe() {
+    if cfg!(target_os = "windows") {
+        tracing::warn!("Skipping test on Windows since it will try to find ffmpeg.exe in archive");
+        return;
+    }
+    clean_tests_dir("ffmpeg");
+    clean_tests_dir("ffprobe");
+
+    // Chose this file because it's relatively small.
+    let url = "https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-6.0.1-armel-static.tar.xz";
+    let mut cmd = bin();
+    cmd.arg("--verbose")
+        .arg("--ansi=false")
+        .arg("install")
+        .arg("--url")
+        .arg(&url)
+        .arg("--dir=tests")
+        .arg("--archive-filename=ffmpeg")
+        .arg("--archive-filename=ffprobe")
+        .arg("--sha=1c2dd0795990796c29d0da8b0842e0bb13daf35eee062087a78cd70131301d58")
+        .assert()
+        .success();
+
+    let path = std::path::Path::new("tests/ffmpeg");
+    assert!(path.exists());
+    let path = std::path::Path::new("tests/ffprobe");
+    assert!(path.exists());
 }
 
 #[test]
