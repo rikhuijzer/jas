@@ -27,19 +27,23 @@
 # $ snapcraft register jas
 # $ snapcraft upload --release=edge jas_0.2.0_amd64.snap
 
+# See also https://github.com/snapcrafters.
 name: 'just-an-installer'
-version: '<VERSION>'
+version: '0.3.0'
 summary: Just an installer
 description: |
    This tool is meant to be used in situations where you want to install a
    binary in a reliable way, that is, by specifying the SHA-256 checksum. The
    checksum ensures that the binary is exactly the one you expect it to be.
 confinement: strict
-base: core22
+base: core24
+# Based on snapcrafters `ruff/snap/snapcraft.yaml`.
+compression: xz
 # Can either be 'stable' or 'devel'. 'devel' will not be published to 'stable' channel.
 # 'devel' also seems to not be automatically pushed to 'edge'.
 grade: 'stable'
 license: MIT
+contact: 'https://github.com/rikhuijzer/jas/issues'
 
 parts:
   jas:
@@ -48,6 +52,10 @@ parts:
       - cargo
     plugin: rust
     source: .
+    stage:
+      - bin/jas
+    organize:
+      jas: bin/jas
 
 apps:
   jas:
