@@ -243,6 +243,10 @@ fn test_install_ffmpeg_ffprobe() {
         tracing::warn!("Skipping test on Windows since it will try to find ffmpeg.exe in archive");
         return;
     }
+    if cfg!(target_os = "linux") {
+        tracing::warn!("Skipping test on Linux since the link times out");
+        return;
+    }
     clean_tests_dir("ffmpeg");
     clean_tests_dir("ffprobe");
 
