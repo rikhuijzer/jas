@@ -31,17 +31,18 @@ create-snapcraft TASK:
     echo "TAGNAME: $TAGNAME"
 
     TEMPLATE="pkg/snapcraft.template.yaml"
+    DEST="snapcraft.yaml"
+    cp --verbose "$TEMPLATE" "$DEST"
     echo "TEMPLATE: $TEMPLATE"
-    sd "<VERSION>" "$VERSION" "$TEMPLATE"
+
+    sd "<VERSION>" "$VERSION" "$DEST"
 
     if [[ "$TASK" == "stable" ]]; then
-        sd "<GRADE>" "stable" "$TEMPLATE"
+        sd "<GRADE>" "stable" "$DEST"
     else
-        sd "<GRADE>" "devel" "$TEMPLATE"
+        sd "<GRADE>" "devel" "$DEST"
     fi
 
-    cp --verbose "$TEMPLATE" snapcraft.yaml
-
     echo "Created snapcraft.yaml:"
-    cat snapcraft.yaml
+    cat "$DEST"
 
