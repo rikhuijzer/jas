@@ -1,9 +1,10 @@
+use assert_cmd::cargo;
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::path::Path;
 
 fn bin() -> Command {
-    Command::cargo_bin("jas").unwrap()
+    cargo::cargo_bin_cmd!("jas")
 }
 
 fn add_exe_if_needed(path: &str) -> String {

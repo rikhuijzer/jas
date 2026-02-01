@@ -1,8 +1,9 @@
+use assert_cmd::cargo;
 use assert_cmd::Command;
 use predicates::prelude::*;
 
 fn bin() -> Command {
-    Command::cargo_bin("jas").unwrap()
+    cargo::cargo_bin_cmd!("jas")
 }
 
 #[test]
