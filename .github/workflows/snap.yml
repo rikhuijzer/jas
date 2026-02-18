@@ -2,7 +2,7 @@ name: snapcraft
 
 on:
   schedule:
-    - cron: '44 3 * * *'
+    - cron: '44 3 * * 2'
   push:
     branches:
       - main
