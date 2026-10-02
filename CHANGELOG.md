@@ -11,15 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Support x64 and ARM64 release selection on Linux, macOS, and Windows Git Bash.
 - Reject unsafe archive paths and links.
-- Add offline Rust integration tests and CI coverage for six runner platforms.
+- Add offline Rust integration tests and CI coverage for six runner platforms;
+  Rust is required only for testing.
 
 ### Changed
 
-- Replace the compiled installer with one standalone Bash 3.2-compatible `jas` file,
-  preserving the CLI options.
+- Replace the compiled installer and platform-specific release binaries with one
+  standalone Bash 3.2-compatible `jas` file and its checksum, preserving the CLI options.
 - Add the install directory to GITHUB_PATH at runtime, including Windows paths.
 - Clean up temporary archives after installation.
-- Release the script and its checksum instead of platform-specific binaries.
 
 ### Fixed
 
@@ -28,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Remove the Rust runtime implementation, keeping Rust only for the test harness.
 - Retire Rust-specific audit and Snap build workflows.
 
 ## [0.3.2] - 2025-05-24

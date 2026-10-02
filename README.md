@@ -119,34 +119,6 @@ Normal GitHub Actions such as
 receive the `GITHUB_TOKEN` by default [via the `github.token` context](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication).
 If you don't want to use a `GITHUB_TOKEN` it is also possible to manually specify the `--url` instead of `--gh`.
 
-## CLI compatibility and behavior
-
-The `install`, `sha`, `show --install-dir`, and `license` commands keep their
-existing options. Both `--name=value` and `--name value` work. Use `sha -p FILE`
-or `sha -u URL` for the short forms. `--verbose` enables debug messages;
-`--ansi=true|false` is accepted for compatibility, and output is plain text.
-Repeated `--archive-filename` and `--executable-filename` options are paired in
-order. Output filenames must be basenames.
-
-Installation handles raw files, `.tar.gz`, `.tgz`, `.tar.xz`, and `.zip` archives.
-It descends through single directories and prefers a `bin` directory. GitHub
-asset selection matches the host OS and architecture (x64, ARM64, or Linux ARM)
-and skips common package and checksum files. Use `--asset-name` when the release
-uses different naming or when you need a particular build. The URL filename
-heuristic still uses the portion before the first hyphen; override it with
-`--executable-filename` if needed. Windows adds `.exe` to extensionless names.
-
-A supplied SHA-256 is verified before extraction or installation. Without
-`--sha`, installation remains unverified, as in the original CLI. Archive links
-and paths escaping the extraction directory are rejected. Temporary files are
-removed on exit; extracted archives are no longer kept in the installation
-directory. Missing archive members fail before any files are installed.
-
-When `GITHUB_PATH` is set, installation adds the directory for subsequent steps,
-including the native Windows path on Windows runners. In the current step use
-an explicit path or export PATH yourself. Otherwise, jas warns if the directory
-is missing from PATH. Set `shell: bash` on Windows workflow steps.
-
 ## Development
 
 Rust is used only for the test harness. Run `cargo test --locked`; tests use
