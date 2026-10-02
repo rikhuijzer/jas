@@ -75,10 +75,6 @@ The download URLs below will be available once v0.4.0 is published.
     printf '%s  jas\n' "$sha" | "${hash[@]}" -c -
     chmod +x jas
     printf '%s\n' "$dir" >> "$GITHUB_PATH"
-
-- name: Check jas installation
-  shell: bash
-  run: jas --version
 ```
 
 The hardcoded SHA-256 above pins the v0.4.0 `jas` release asset. Update the version
