@@ -1,0 +1,289 @@
+#!/usr/bin/env bash
+# jas: a checksum-aware installer. Compatible with Bash 3.2 and Git Bash.
+# Tildes are deliberately literal until expand_home processes user input.
+# shellcheck disable=SC2088
+set -euo pipefail
+VERSION=0.3.2
+verbose=false
+work=''
+trap 'if [[ -n "$work" ]]; then rm -rf -- "$work"; fi' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+fail() { printf 'ERROR %s\n' "$*" >&2; exit 1; }
+log() { printf '%s\n' "$*" >&2; }
+debug() { if $verbose; then log "$*"; fi; }
+need() { command -v "$1" >/dev/null 2>&1 || fail "Required command not found: $1"; }
+temporary() { if [[ -z "$work" ]]; then work=$(mktemp -d); fi; }
+expand_home() { case "$1" in '~/'*) printf '%s/%s\n' "$HOME" "${1#\~/}";; *) printf '%s\n' "$1";; esac; }
+help_text() {
+    cat <<'HELP'
+jas - Just an installer
+Usage: jas [--verbose] [--ansi true|false] <COMMAND> [OPTIONS]
+
+Commands:
+  install   --gh OWNER/REPO@TAG | --url URL
+            [--gh-token TOKEN] [--sha SHA256] [--dir DIR]
+            [--asset-name NAME] [--archive-filename NAME]...
+            [--executable-filename NAME]...
+  sha       --path FILE | --url URL  (also -p and -u)
+  show      --install-dir
+  license
+
+The install directory defaults to ~/.jas/bin. Archive/output filename options
+can be repeated and are paired in order. Without --sha, verification is skipped.
+Both --option=value and --option value are accepted. --ansi is retained for CLI
+compatibility; output is plain text. Use --help or --version for more information.
+HELP
+}
+sha_file() {
+    local result
+    [[ -f "$1" ]] || fail "Path does not exist or is not a file: $1"
+    if command -v sha256sum >/dev/null 2>&1; then
+        result=$(sha256sum < "$1")
+    elif command -v shasum >/dev/null 2>&1; then
+        result=$(shasum -a 256 < "$1")
+    else
+        fail 'Required command not found: sha256sum or shasum'
+    fi
+    printf '%s\n' "${result%% *}"
+}
+download() {
+    local url=$1
+    case "$url" in http://*|https://*) ;; *) url="https://$url";; esac
+    need curl
+    log "Downloading $url"
+    curl --fail --location --silent --show-error --retry 2 --connect-timeout 30 \
+        --max-time 600 --proto '=http,https' --proto-redir '=http,https' \
+        --output "$2" "$url"
+}
+platform() {
+    case "$(uname -s)" in
+        Linux*) os=linux;; Darwin*) os=macos;; MINGW*|MSYS*|CYGWIN*) os=windows;;
+        *) fail 'Unsupported platform; specify --asset-name';;
+    esac
+    # RUNNER_ARCH describes the Windows host even when Git Bash is emulated.
+    case "${RUNNER_ARCH:-$(uname -m)}" in
+        x86_64|amd64|AMD64|X64) arch=x64;; aarch64|arm64|ARM64) arch=arm64;;
+        arm*|ARM) arch=arm;; *) fail 'Unsupported architecture; specify --asset-name';;
+    esac
+}
+resolve_github() {
+    local owner repo tag response candidate lower matches_os matches_arch
+    [[ "$gh" == */*@* ]] || fail 'Expected --gh OWNER/REPO@TAG'
+    owner=${gh%%/*}; repo=${gh#*/}; tag=${repo#*@}; repo=${repo%%@*}
+    [[ -n "$owner" && -n "$repo" && -n "$tag" && "$repo" != */* ]] || fail 'Invalid GitHub repository/tag'
+    need jq; need curl
+    response="$work/release.json"
+    local headers=(-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28')
+    if [[ -n "$token" ]]; then headers+=(-H "Authorization: Bearer $token"); fi
+    tag=$(jq -nr --arg tag "$tag" '$tag | @uri')
+    debug "Requesting asset list for $owner/$repo@$tag"
+    curl --fail --location --silent --show-error --retry 2 --connect-timeout 30 --max-time 120 \
+        --proto '=https' --proto-redir '=https' -A "jas/$VERSION" "${headers[@]}" \
+        -o "$response" "https://api.github.com/repos/$owner/$repo/releases/tags/$tag"
+    jq -e '.assets | type == "array"' "$response" >/dev/null || fail 'Unexpected response from GitHub'
+    if [[ -z "$asset" ]]; then
+        platform
+        while IFS= read -r candidate; do
+            lower=$(printf '%s' "$candidate" | tr '[:upper:]' '[:lower:]')
+            case "$lower" in *.pkg|*.deb|*.rpm|*.msi|*.sha256|*.sha256sum|*.sig|*.asc|*checksum*) continue;; esac
+            matches_os=false; matches_arch=false
+            case "$os:$lower" in linux:*linux*|macos:*macos*|macos:*darwin*|windows:*windows*|windows:*win64*) matches_os=true;; esac
+            case "$arch:$lower" in x64:*x86_64*|x64:*amd64*|x64:*x64*|arm64:*aarch64*|arm64:*arm64*|arm:*armv7*|arm:*armhf*|arm:*armel*) matches_arch=true;; esac
+            if $matches_os && $matches_arch; then asset=$candidate; break; fi
+        done < <(jq -r '.assets[].name' "$response")
+        [[ -n "$asset" ]] || fail "No asset found for $os/$arch; specify --asset-name"
+    fi
+    url=$(jq -er --arg name "$asset" '.assets[] | select(.name == $name) | .browser_download_url' "$response") || fail "Asset not found: $asset"
+    name=$asset; output=$repo
+}
+# Reject paths escaping the extraction directory, including Windows paths.
+safe_member() {
+    case "$1" in /*|*\\*|*:*|..|../*|*/../*|*/..) fail "Unsafe archive path: $1";; esac
+}
+safe_output() {
+    [[ -n "$1" && "$1" != . && "$1" != .. && "$1" != */* && "$1" != *\\* && "$1" != *:* ]] || fail "Output filename must be a basename: $1"
+}
+windows_name() {
+    case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*)
+        if [[ "$1" != *.* ]]; then printf '%s.exe\n' "$1"; return; fi;; esac
+    printf '%s\n' "$1"
+}
+extract() {
+    local member listing
+    mkdir "$work/archive" || fail "Cannot create extraction directory"
+    case "$name" in
+        *.tar.gz|*.tgz|*.tar.xz)
+            need tar
+            tar -tf "$work/download" > "$work/members" || fail "Cannot list tar archive"
+            # Links are unnecessary for installing standalone executables. Reject
+            # them before extraction so they cannot redirect later writes.
+            listing=$(tar -tvf "$work/download") || fail "Cannot inspect tar archive"
+            if printf '%s\n' "$listing" | LC_ALL=C grep -Eq '^[lh]'; then fail 'Archive links are not supported'; fi
+            while IFS= read -r member; do safe_member "$member"; done < "$work/members"
+            tar -xf "$work/download" -C "$work/archive" || fail "Cannot extract tar archive";;
+        *.zip)
+            if command -v unzip >/dev/null 2>&1; then
+                unzip -Z1 "$work/download" > "$work/members" || fail 'Cannot list ZIP archive'
+                listing=$(unzip -Z -l "$work/download") || fail 'Cannot inspect ZIP archive'
+                if printf '%s\n' "$listing" | LC_ALL=C grep -Eq '^l'; then fail 'Archive links are not supported'; fi
+                while IFS= read -r member; do safe_member "$member"; done < "$work/members"
+                unzip -q "$work/download" -d "$work/archive" || fail 'Cannot extract ZIP archive'
+            else
+                # Windows ships bsdtar, which can also read ZIP files.
+                need tar
+                tar -tf "$work/download" > "$work/members" || fail 'Cannot list ZIP archive (install unzip or use bsdtar)'
+                listing=$(tar -tvf "$work/download") || fail 'Cannot inspect ZIP archive'
+                if printf '%s\n' "$listing" | LC_ALL=C grep -Eq '^[lh]'; then fail 'Archive links are not supported'; fi
+                while IFS= read -r member; do safe_member "$member"; done < "$work/members"
+                tar -xf "$work/download" -C "$work/archive" || fail 'Cannot extract ZIP archive'
+            fi;;
+        *) return 1;;
+    esac
+    return 0
+}
+archive_files() {
+    local root=$work/archive
+    shopt -s nullglob dotglob
+    files=("$root"/*)
+    while :; do
+        if [[ -d "$root/bin" ]]; then root="$root/bin"
+        elif [[ ${#files[@]} -eq 1 && -d "${files[0]}" ]]; then root=${files[0]}
+        else break; fi
+        files=("$root"/*)
+    done
+    shopt -u nullglob dotglob
+}
+choose_binary() {
+    local wanted=$1 exact=$2 file base best=''
+    for file in ${files[@]+"${files[@]}"}; do
+        [[ -f "$file" && ! -L "$file" ]] || continue
+        base=${file##*/}
+        if [[ "$base" == "$wanted" ]]; then selected=$file; return; fi
+        if [[ "$exact" == false && "$base" == *"$wanted"* && "$base" != *LICENSE* ]]; then
+            if [[ -z "$best" || ${#base} -lt ${#best} ]]; then best=$base; selected=$file; fi
+        fi
+    done
+    [[ -n "$best" ]] || fail "Could not find executable in archive: $wanted; specify --archive-filename"
+}
+install() {
+    local actual i dst selected path_entry
+    [[ -n "$gh" || -n "$url" ]] || fail 'Expected either --gh or --url'
+    [[ -z "$gh" || -z "$url" ]] || fail 'Specify only one of --gh and --url'
+    if [[ ${#outputs[@]} -gt 0 ]]; then
+        if [[ ${#archives[@]} -gt 0 ]]; then
+            [[ ${#outputs[@]} -eq ${#archives[@]} ]] || fail 'Archive and executable filename counts must match'
+        else [[ ${#outputs[@]} -eq 1 ]] || fail 'Multiple output names require multiple archive filenames'; fi
+    fi
+    if [[ -n "$sha" ]]; then [[ "$sha" =~ ^[[:xdigit:]]{64}$ ]] || fail 'SHA-256 must contain 64 hexadecimal digits'; fi
+    for dst in ${outputs[@]+"${outputs[@]}"}; do safe_output "$dst"; done
+    temporary
+    if [[ -n "$gh" ]]; then resolve_github
+    else name=${url%%\?*}; name=${name%%\#*}; name=${name##*/}; output=${name%%-*}; fi
+    download "$url" "$work/download"
+    if [[ -n "$sha" ]]; then
+        actual=$(sha_file "$work/download")
+        [[ "$actual" == "$(printf '%s' "$sha" | tr '[:upper:]' '[:lower:]')" ]] || fail "SHA-256 mismatch: expected $sha, but got $actual"
+    fi
+    sources=(); destinations=()
+    if extract; then
+        archive_files
+        if [[ ${#archives[@]} -eq 0 ]]; then
+            choose_binary "$output" false
+            sources+=("$selected"); destinations+=("${outputs[0]:-$output}")
+        else
+            for ((i=0; i<${#archives[@]}; i++)); do
+                choose_binary "$(windows_name "${archives[i]##*/}")" true
+                sources+=("$selected"); destinations+=("${outputs[i]:-${archives[i]##*/}}")
+            done
+        fi
+    else
+        [[ ${#archives[@]} -eq 0 ]] || fail '--archive-filename requires an archive'
+        sources+=("$work/download"); destinations+=("${outputs[0]:-$output}")
+    fi
+    # Resolve every source and output before touching the installation directory.
+    for ((i=0; i<${#destinations[@]}; i++)); do
+        destinations[i]=$(windows_name "${destinations[i]}"); safe_output "${destinations[i]}"
+    done
+    dir=$(expand_home "$dir")
+    mkdir -p -- "$dir"
+    for ((i=0; i<${#sources[@]}; i++)); do
+        dst="$dir/${destinations[i]}"
+        [[ ! -L "$dst" && ! -d "$dst" ]] || fail "Refusing to overwrite a link or directory: $dst"
+        cp -- "${sources[i]}" "$dst"; chmod 755 "$dst"
+        log "Placed binary at $dst"
+    done
+    if [[ -n "${GITHUB_PATH:-}" ]]; then
+        path_entry=$(cd "$dir" && pwd)
+        if command -v cygpath >/dev/null 2>&1; then path_entry=$(cygpath -w "$path_entry"); fi
+        printf '%s\n' "$path_entry" >> "$GITHUB_PATH"
+    else
+        case ":$PATH:" in *":$dir:"*) ;; *) log "Could not find $dir in PATH, you may need to add it to your PATH manually";; esac
+    fi
+}
+main() {
+    local command='' option value
+    gh='' url='' sha='' dir='~/.jas/bin' asset='' token=${GITHUB_TOKEN:-} path='' show_dir=false
+    archives=() outputs=()
+    while [[ $# -gt 0 ]]; do
+        option=${1%%=*}; value=''
+        case "$option" in
+            -h|--help) help_text; return;;
+            -V|--version) printf 'jas %s\n' "$VERSION"; return;;
+            --verbose) verbose=true; shift; continue;;
+            install|sha|show|license)
+                [[ -z "$command" ]] || fail "Unexpected argument: $1"
+                command=$1; shift; continue;;
+            --install-dir) [[ "$command" == show ]] || fail 'Use --install-dir with show'; show_dir=true; shift; continue;;
+            --ansi|--gh|--url|-u|--sha|--dir|--asset-name|--gh-token|--archive-filename|--executable-filename|--path|-p)
+                if [[ "$1" == *=* ]]; then value=${1#*=}; shift
+                else [[ $# -ge 2 && "$2" != --* ]] || fail "Missing value for $1"; value=$2; shift 2; fi;;
+            *) fail "Unknown argument: $1";;
+        esac
+        case "$command:$option" in
+            *:--ansi) [[ "$value" == true || "$value" == false ]] || fail '--ansi expects true or false';;
+            install:--gh) gh=$value;; install:--url|sha:--url|sha:-u) url=$value;;
+            install:--sha) sha=$value;; install:--dir) dir=$value;;
+            install:--asset-name) asset=$value;; install:--gh-token) token=$value;;
+            install:--archive-filename) archives+=("$value");;
+            install:--executable-filename) outputs+=("$value");;
+            sha:--path|sha:-p) path=$value;;
+            *) fail "Option $option is not valid for ${command:-this command}";;
+        esac
+    done
+    case "$command" in
+        install) install;;
+        sha)
+            [[ -z "$path" || -z "$url" ]] || fail 'Specify only one of --path and --url'
+            if [[ -n "$path" ]]; then sha_file "$path"
+            elif [[ -n "$url" ]]; then temporary; download "$url" "$work/download"; sha_file "$work/download"
+            else fail 'Specify either a path or a URL'; fi;;
+        show) if $show_dir; then expand_home '~/.jas/bin'; fi;;
+        license) cat <<'LICENSE'
+MIT License
+
+Copyright (c) 2025 Rik Huijzer and contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+LICENSE
+            ;;
+        '') help_text; exit 1;;
+    esac
+}
+main "$@"

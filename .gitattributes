@@ -1,0 +1,4 @@
+# Bash scripts and their embedded license must keep Unix line endings on Windows.
+jas text eol=lf
+*.sh text eol=lf
+LICENSE text eol=lf
