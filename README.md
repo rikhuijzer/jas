@@ -64,9 +64,8 @@ The download URLs below will be available once v0.4.0 is published.
 - name: Install jas v0.4.0
   shell: bash
   run: |
-    dir="$RUNNER_TEMP/jas-bin"
-    mkdir -p "$dir"
-    cd "$dir"
+    mkdir -p "$RUNNER_TEMP/jas"
+    cd "$RUNNER_TEMP/jas"
     curl --fail --location --retry 2 \
       https://github.com/rikhuijzer/jas/releases/download/v0.4.0/jas -o jas
     sha="437b2988dbc58d5867b908bb67366b766b9bcd3ed4b266a129f8d96d75301f6e"
@@ -74,7 +73,7 @@ The download URLs below will be available once v0.4.0 is published.
     command -v sha256sum >/dev/null 2>&1 || hash=(shasum -a 256)
     printf '%s  jas\n' "$sha" | "${hash[@]}" -c -
     chmod +x jas
-    printf '%s\n' "$dir" >> "$GITHUB_PATH"
+    printf '%s\n' "$RUNNER_TEMP/jas" >> "$GITHUB_PATH"
 ```
 
 The hardcoded SHA-256 above pins the v0.4.0 `jas` release asset. Update the version
