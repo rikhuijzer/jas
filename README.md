@@ -69,7 +69,7 @@ The download URLs below will be available once v0.4.0 is published.
     cd "$dir"
     curl --fail --location --retry 2 \
       https://github.com/rikhuijzer/jas/releases/download/v0.4.0/jas -o jas
-    sha="REPLACE_WITH_REVIEWED_SHA256_FOR_V0.4.0"
+    sha="437b2988dbc58d5867b908bb67366b766b9bcd3ed4b266a129f8d96d75301f6e"
     hash=(sha256sum)
     command -v sha256sum >/dev/null 2>&1 || hash=(shasum -a 256)
     printf '%s  jas\n' "$sha" | "${hash[@]}" -c -
@@ -81,8 +81,8 @@ The download URLs below will be available once v0.4.0 is published.
   run: jas --version
 ```
 
-Replace the SHA placeholder with the reviewed SHA-256 of the v0.4.0 `jas`
-release asset, and keep it hardcoded in your workflow. Adding to `GITHUB_PATH`
+The hardcoded SHA-256 above pins the v0.4.0 `jas` release asset. Update the version
+and its reviewed checksum together when upgrading. Adding to `GITHUB_PATH`
 makes jas available in subsequent steps. `RUNNER_TEMP` already uses the runner's
 native path format, including on Windows.
 

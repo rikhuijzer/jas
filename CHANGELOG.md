@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.4.0] - 2026-10-02
 
 ### Added
 
@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Replace the compiled installer and platform-specific release binaries with one
-  standalone Bash 3.2-compatible `jas` file and its checksum, preserving the CLI options.
+  standalone Bash 3.2-compatible `jas` file and its checksum. Installation now
+  requires Bash and system utilities instead of Rust; `cargo install jas` is no
+  longer supported for this release.
 - Add the install directory to GITHUB_PATH at runtime, including Windows paths.
 - Clean up temporary archives after installation.
 
@@ -25,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Pair multiple archive/output filenames correctly.
 - Honor output filename overrides for raw downloads.
+- Locate Git Bash automatically in the Windows test harness.
+- Handle Windows jq line endings and native paths passed to GNU tar.
 
 ### Removed
 
@@ -73,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial release.
 
+[0.4.0]: https://github.com/rikhuijzer/jas/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/rikhuijzer/jas/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/rikhuijzer/jas/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/rikhuijzer/jas/compare/v0.2.0...v0.3.0

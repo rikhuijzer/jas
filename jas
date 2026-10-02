@@ -3,7 +3,7 @@
 # Tildes are deliberately literal until expand_home processes user input.
 # shellcheck disable=SC2088
 set -euo pipefail
-VERSION=0.3.2
+VERSION=0.4.0
 verbose=false
 work=''
 trap 'if [[ -n "$work" ]]; then rm -rf -- "$work"; fi' EXIT

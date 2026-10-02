@@ -198,7 +198,7 @@ const HELLO_SHA: &str = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7a
 fn cli_information() {
     let f = Fixture::new();
     assert!(success(&f.run(&["--help"])).contains("--archive-filename"));
-    assert_eq!(success(&f.run(&["--version"])), "jas 0.3.2\n");
+    assert_eq!(success(&f.run(&["--version"])), "jas 0.4.0\n");
     assert_eq!(
         success(&f.run(&["license"])).replace("\r\n", "\n"),
         include_str!("../LICENSE")
