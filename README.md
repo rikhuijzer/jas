@@ -46,9 +46,7 @@ jas sha \
 
 ## Usage in GitHub Actions
 
-Install jas from the [v0.4.0 release](https://github.com/rikhuijzer/jas/releases/tag/v0.4.0)
-using one of the steps below.
-The download URLs below will be available once v0.4.0 is published.
+Install jas using one of the steps below.
 
 ### Linux runners
 
@@ -90,10 +88,8 @@ For a platform independent workflow:
     printf '%s\n' "$RUNNER_TEMP/jas" >> "$GITHUB_PATH"
 ```
 
-The hardcoded SHA-256 in both examples pins the v0.4.0 `jas` release asset. Update the version
-and its reviewed checksum together when upgrading. Adding to `GITHUB_PATH`
-makes jas available in subsequent steps. `RUNNER_TEMP` already uses the runner's
-native path format, including on Windows.
+The hardcoded SHA-256 in both examples pins the release asset. Update the version
+and its reviewed checksum together when upgrading.
 
 After installing jas with either step above, to install and run [`typos`](https://github.com/crate-ci/typos) v1.31.1, add these steps to an Ubuntu x64 job:
 
@@ -116,26 +112,13 @@ If someone changes the binary, the SHA will change and your CI will fail.
 The `--gh-token` is optional but recommended inside GitHub Actions because otherwise this tool might be rate limited when determining which assets are available in the release.
 The limit is 60 requests per hour per IP address.
 Normal GitHub Actions such as 
+
 ```yml
 - uses: JamesIves/github-pages-deploy-action@v4
 ```
 
 receive the `GITHUB_TOKEN` by default [via the `github.token` context](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication).
 If you don't want to use a `GITHUB_TOKEN` it is also possible to manually specify the `--url` instead of `--gh`.
-
-## Development
-
-Rust is used only for the test harness. Run `cargo test --locked`; tests use
-local archives and a mock HTTP client, so they do not download release assets or
-need a GitHub token. They cover checksum failures, archive formats, multiple
-output names, platform selection, unsafe paths, and CLI validation. CI runs the
-harness on x64 and ARM64 Linux, macOS, and Windows, and also checks macOS Bash
-3.2. Run `shellcheck jas` and `cargo fmt --all -- --check` for linting.
-
-On Windows, the harness locates Git Bash through the Git installation, so
-`cargo test --locked` works without extra setup. Git for Windows must be installed.
-`JAS_TEST_BASH` is an optional override for selecting a specific Bash executable,
-for example `JAS_TEST_BASH=/bin/bash cargo test --locked` on macOS or Linux.
 
 ## Background
 
