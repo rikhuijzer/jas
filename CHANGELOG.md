@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Support x64 and ARM64 release selection on Linux, macOS, and Windows Git Bash.
+- Reject unsafe archive paths and links.
+- Add offline Rust integration tests and CI coverage for six runner platforms;
+  Rust is required only for testing.
+
+### Changed
+
+- Replace the compiled installer and platform-specific release binaries with one
+  standalone Bash 3.2-compatible `jas` file and its checksum, preserving the CLI options.
+- Add the install directory to GITHUB_PATH at runtime, including Windows paths.
+- Clean up temporary archives after installation.
+
+### Fixed
+
+- Pair multiple archive/output filenames correctly.
+- Honor output filename overrides for raw downloads.
+
+### Removed
+
+- Retire Rust-specific audit and Snap build workflows.
+
 ## [0.3.2] - 2025-05-24
 
 ### Fixed

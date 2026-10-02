@@ -14,63 +14,31 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
           - os: macos-latest
+          - os: macos-15-intel
           - os: windows-latest
+          - os: windows-11-arm
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update stable
-      - run: rustup default stable
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo test --no-run
-      - run: cargo test --all-features
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: bash -n jas
+      - run: cargo test --locked
+      - name: Test macOS system Bash 3.2
+        if: runner.os == 'macOS'
+        run: JAS_TEST_BASH=/bin/bash PATH="/bin:$PATH" cargo test --locked
 
-  typos:
+  lint:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
-      - run: cargo install --debug --path .
-      - run: >
-          jas install
-          --gh crate-ci/typos@v1.31.1
-          --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
-          --gh-token ${{ secrets.GITHUB_TOKEN }}
-      - run: typos .
-
-  fmt:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    timeout-minutes: 10
-
-    steps:
-      - uses: actions/checkout@v4
-      - run: rustup update stable
-      - run: rustup default stable
-      - run: rustup component add rustfmt
-      - run: cargo fmt --all --check
-
-  clippy:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    timeout-minutes: 10
-
-    steps:
-      - uses: actions/checkout@v4
-      - run: rustup update stable
-      - run: rustup default stable
-      - run: cargo clippy --all --all-features -- -D warnings
+      - run: shellcheck jas
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --tests --locked -- -D warnings

@@ -8,11 +8,31 @@ See the [Background](#background) section for more details.
 
 ## Installation
 
+Download `jas` from a release (or copy it from this repository), then:
+
 ```bash
-cargo install --debug jas@0.3.0
+mkdir -p "$HOME/.local/bin"
+cp jas "$HOME/.local/bin/jas"
+chmod +x "$HOME/.local/bin/jas"
+export PATH="$HOME/.local/bin:$HOME/.jas/bin:$PATH"
+jas --help
 ```
 
-and add `~/.jas/bin` to your PATH.
+The installer is one standalone Bash file; it does not require Rust, Python, or
+Node.js. It supports Bash 3.2 or newer, including macOS's system Bash and Git
+Bash on Windows. On Windows, run it in Git Bash or with `bash jas ...`.
+
+Dependencies are `curl`, `tar`, ordinary Unix utilities, and either `sha256sum`
+or `shasum`. GitHub release lookup (`--gh`) also requires `jq`; ZIP extraction
+requires `unzip` or a ZIP-capable `tar` (bsdtar). For `.tar.xz`, use an
+xz-capable `tar`; GNU tar also requires `xz`.
+These are standard tools on GitHub-hosted Linux, macOS, and Windows runners.
+Self-hosted and minimal container runners must provide these dependencies and
+Bash themselves.
+
+Keep a reviewed copy of `jas` in your repository, or verify a downloaded copy
+against a trusted checksum before running it. Checking an installed program's
+checksum does not verify the installer itself.
 
 ## Usage
 
@@ -24,7 +44,7 @@ jas install \
 --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
 ```
 
-This command uses the SHA for the MacOS aarch64 release.
+This command uses the SHA for the Linux x86_64 release.
 To get the SHA for other platforms, you can use `sha --url`.
 For example,
 
@@ -35,24 +55,55 @@ jas sha \
 
 ## Usage in GitHub Actions
 
-For example, to install and run [`typos`](https://github.com/crate-ci/typos) v1.31.1, you can use the following job in your GitHub Actions workflow:
+Install jas from the [v0.4.0 release](https://github.com/rikhuijzer/jas/releases/tag/v0.4.0)
+with this workflow step. The same script works on Linux, macOS, and Windows
+runners; use `shell: bash` for installation and subsequent jas commands.
+The download URLs below will be available once v0.4.0 is published.
 
 ```yaml
-jobs:
-  typos:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    timeout-minutes: 10
+- name: Install jas v0.4.0
+  shell: bash
+  run: |
+    dir="$RUNNER_TEMP/jas-bin"
+    mkdir -p "$dir"
+    base="https://github.com/rikhuijzer/jas/releases/download/v0.4.0"
+    curl --fail --location --retry 2 "$base/jas" -o "$dir/jas"
+    sha="REPLACE_WITH_REVIEWED_SHA256_FOR_V0.4.0"
+    if command -v sha256sum >/dev/null 2>&1; then
+      actual=$(sha256sum < "$dir/jas")
+    else
+      actual=$(shasum -a 256 < "$dir/jas")
+    fi
+    if [[ "${actual%% *}" != "$sha" ]]; then
+      echo "SHA-256 mismatch" >&2
+      exit 1
+    fi
+    chmod +x "$dir/jas"
+    printf '%s\n' "$dir" >> "$GITHUB_PATH"
 
-    steps:
-      - uses: actions/checkout@v4
-      - run: cargo install --debug jas@0.3.0
-      - run: >
-          jas install
-          --gh crate-ci/typos@v1.31.1
-          --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
-          --gh-token ${{ secrets.GITHUB_TOKEN }}
-      - run: typos .
+- name: Check jas installation
+  shell: bash
+  run: jas --version
+```
+
+Replace the SHA placeholder with the reviewed SHA-256 of the v0.4.0 `jas`
+release asset, and keep it hardcoded in your workflow. Adding to `GITHUB_PATH`
+makes jas available in subsequent steps. `RUNNER_TEMP` already uses the runner's
+native path format, including on Windows.
+
+After installing jas with the step above, to install and run [`typos`](https://github.com/crate-ci/typos) v1.31.1, add these steps to an Ubuntu x64 job:
+
+```yaml
+- uses: actions/checkout@v4
+- name: Install typos
+  shell: bash
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  run: >
+    jas install
+    --gh crate-ci/typos@v1.31.1
+    --sha f683c2abeaff70379df7176110100e18150ecd17a4b9785c32908aca11929993
+- run: typos .
 ```
 
 As stated above, the benefit of this is that you can be sure which version of the binary you are using.
@@ -67,6 +118,20 @@ Normal GitHub Actions such as
 
 receive the `GITHUB_TOKEN` by default [via the `github.token` context](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication).
 If you don't want to use a `GITHUB_TOKEN` it is also possible to manually specify the `--url` instead of `--gh`.
+
+## Development
+
+Rust is used only for the test harness. Run `cargo test --locked`; tests use
+local archives and a mock HTTP client, so they do not download release assets or
+need a GitHub token. They cover checksum failures, archive formats, multiple
+output names, platform selection, unsafe paths, and CLI validation. CI runs the
+harness on x64 and ARM64 Linux, macOS, and Windows, and also checks macOS Bash
+3.2. Run `shellcheck jas` and `cargo fmt --all -- --check` for linting.
+
+On Windows, the harness locates Git Bash through the Git installation, so
+`cargo test --locked` works without extra setup. Git for Windows must be installed.
+`JAS_TEST_BASH` is an optional override for selecting a specific Bash executable,
+for example `JAS_TEST_BASH=/bin/bash cargo test --locked` on macOS or Linux.
 
 ## Background
 
