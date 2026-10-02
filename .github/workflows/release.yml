@@ -1,7 +1,9 @@
 name: release
+
 on:
   push:
-    tags: ['v*']
+    tags:
+      - "v*"
   workflow_dispatch:
 
 jobs:
@@ -9,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
       - uses: actions/checkout@v4
       - run: bash -n jas
