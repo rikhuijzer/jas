@@ -66,19 +66,14 @@ The download URLs below will be available once v0.4.0 is published.
   run: |
     dir="$RUNNER_TEMP/jas-bin"
     mkdir -p "$dir"
-    base="https://github.com/rikhuijzer/jas/releases/download/v0.4.0"
-    curl --fail --location --retry 2 "$base/jas" -o "$dir/jas"
+    cd "$dir"
+    curl --fail --location --retry 2 \
+      https://github.com/rikhuijzer/jas/releases/download/v0.4.0/jas -o jas
     sha="REPLACE_WITH_REVIEWED_SHA256_FOR_V0.4.0"
-    if command -v sha256sum >/dev/null 2>&1; then
-      actual=$(sha256sum < "$dir/jas")
-    else
-      actual=$(shasum -a 256 < "$dir/jas")
-    fi
-    if [[ "${actual%% *}" != "$sha" ]]; then
-      echo "SHA-256 mismatch" >&2
-      exit 1
-    fi
-    chmod +x "$dir/jas"
+    hash=(sha256sum)
+    command -v sha256sum >/dev/null 2>&1 || hash=(shasum -a 256)
+    printf '%s  jas\n' "$sha" | "${hash[@]}" -c -
+    chmod +x jas
     printf '%s\n' "$dir" >> "$GITHUB_PATH"
 
 - name: Check jas installation
