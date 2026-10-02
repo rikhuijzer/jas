@@ -61,7 +61,7 @@ runners; use `shell: bash` for installation and subsequent jas commands.
 The download URLs below will be available once v0.4.0 is published.
 
 ```yaml
-- name: Install jas v0.4.0
+- name: Install jas
   shell: bash
   run: |
     mkdir -p "$RUNNER_TEMP/jas"
