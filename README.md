@@ -7,24 +7,6 @@ so that you can be sure you are executing the file you expected.
 I wrote this tool in response to yet another GitHub Action supply chain attack.
 See the [Background](#background) section for more details.
 
-## Runner requirements
-
-The installer is one standalone Bash file; it does not require Rust, Python, or
-Node.js. It supports Bash 3.2 or newer, including macOS's system Bash and Git
-Bash on Windows runners.
-
-Dependencies are `curl`, `tar`, ordinary Unix utilities, and either `sha256sum`
-or `shasum`. GitHub release lookup (`--gh`) also requires `jq`; ZIP extraction
-requires `unzip` or a ZIP-capable `tar` (bsdtar). For `.tar.xz`, use an
-xz-capable `tar`; GNU tar also requires `xz`.
-These are standard tools on GitHub-hosted Linux, macOS, and Windows runners.
-Self-hosted and minimal container runners must provide these dependencies and
-Bash themselves.
-
-Keep a reviewed copy of `jas` in your repository, or verify a downloaded copy
-against a trusted checksum before running it. Checking an installed program's
-checksum does not verify the installer itself.
-
 ## Usage
 
 To install Typos from GitHub into `~/.jas/bin`, you can use:
