@@ -13,7 +13,15 @@ fail() { printf 'ERROR %s\n' "$*" >&2; exit 1; }
 log() { printf '%s\n' "$*" >&2; }
 debug() { if $verbose; then log "$*"; fi; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "Required command not found: $1"; }
-temporary() { if [[ -z "$work" ]]; then work=$(mktemp -d); fi; }
+temporary() {
+    if [[ -z "$work" ]]; then
+        work=$(mktemp -d)
+        # GNU tar treats a colon in a native Windows filename as a remote host.
+        if command -v cygpath >/dev/null 2>&1; then
+            work=$(cygpath -u "$work")
+        fi
+    fi
+}
 expand_home() { case "$1" in '~/'*) printf '%s/%s\n' "$HOME" "${1#\~/}";; *) printf '%s\n' "$1";; esac; }
 help_text() {
     cat <<'HELP'
@@ -77,6 +85,8 @@ resolve_github() {
     local headers=(-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28')
     if [[ -n "$token" ]]; then headers+=(-H "Authorization: Bearer $token"); fi
     tag=$(jq -nr --arg tag "$tag" '$tag | @uri')
+    # Native Windows jq emits CRLF; command substitution removes only the LF.
+    tag=${tag%$'\r'}
     debug "Requesting asset list for $owner/$repo@$tag"
     curl --fail --location --silent --show-error --retry 2 --connect-timeout 30 --max-time 120 \
         --proto '=https' --proto-redir '=https' -A "jas/$VERSION" "${headers[@]}" \
@@ -85,6 +95,7 @@ resolve_github() {
     if [[ -z "$asset" ]]; then
         platform
         while IFS= read -r candidate; do
+            candidate=${candidate%$'\r'}
             lower=$(printf '%s' "$candidate" | tr '[:upper:]' '[:lower:]')
             case "$lower" in *.pkg|*.deb|*.rpm|*.msi|*.sha256|*.sha256sum|*.sig|*.asc|*checksum*) continue;; esac
             matches_os=false; matches_arch=false
@@ -95,6 +106,7 @@ resolve_github() {
         [[ -n "$asset" ]] || fail "No asset found for $os/$arch; specify --asset-name"
     fi
     url=$(jq -er --arg name "$asset" '.assets[] | select(.name == $name) | .browser_download_url' "$response") || fail "Asset not found: $asset"
+    url=${url%$'\r'}
     name=$asset; output=$repo
 }
 # Reject paths escaping the extraction directory, including Windows paths.

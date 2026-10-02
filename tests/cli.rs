@@ -81,10 +81,22 @@ fi
 "#,
         )
         .unwrap();
+        fs::write(
+            mock.join("jq"),
+            r#"#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${JAS_JQ_CRLF:-false}" == true ]]; then
+    "$JAS_REAL_JQ" "$@" | tr -d '\r' | sed 's/$/\r/'
+else
+    exec "$JAS_REAL_JQ" "$@"
+fi
+"#,
+        )
+        .unwrap();
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            for name in ["curl", "uname"] {
+            for name in ["curl", "uname", "jq"] {
                 fs::set_permissions(mock.join(name), fs::Permissions::from_mode(0o755)).unwrap();
             }
         }
@@ -104,6 +116,7 @@ fi
             r#"set -e
 if command -v cygpath >/dev/null 2>&1; then JAS_MOCK=$(cygpath -u "$JAS_MOCK"); fi
 export JAS_REAL_UNAME=$(command -v uname)
+export JAS_REAL_JQ=$(command -v jq || true)
 export PATH="$JAS_MOCK:${JAS_TEST_PATH:-$PATH}"
 exec "$BASH" "$@"
 "#,
@@ -308,13 +321,34 @@ fn xz_archive() {
     fs::create_dir(f.path("nested")).unwrap();
     fs::write(f.path("nested/tool.sh"), "hello world").unwrap();
     let out = bash()
-        .args(["-c", "tar -cJf \"$1\" -C \"$2\" nested", "test"])
+        .args([
+            "-c",
+            r#"set -e
+archive=$1
+root=$2
+if command -v cygpath >/dev/null 2>&1; then
+    archive=$(cygpath -u "$archive")
+    root=$(cygpath -u "$root")
+fi
+tar -cJf "$archive" -C "$root" nested
+"#,
+            "test",
+        ])
         .arg(f.path("payload"))
         .arg(f.root.path())
         .output()
         .unwrap();
     success(&out);
-    success(&f.install(&["--url=https://example.com/tool.sh-release.tar.xz"]));
+    let dir = f.path("installed");
+    success(&f.run_with(
+        &[
+            "install",
+            "--url=https://example.com/tool.sh-release.tar.xz",
+            "--dir",
+            dir.to_str().unwrap(),
+        ],
+        &[("TMPDIR", f.root.path().to_str().unwrap())],
+    ));
     assert!(f.path("installed/tool.sh").is_file());
 }
 #[test]
@@ -453,18 +487,30 @@ fn github_asset_selection_and_token() {
                 "--dir",
                 dir.to_str().unwrap(),
             ],
-            &[("RUNNER_ARCH", runner_arch), ("GITHUB_TOKEN", "test-token")],
+            &[
+                ("RUNNER_ARCH", runner_arch),
+                ("GITHUB_TOKEN", "test-token"),
+                ("JAS_JQ_CRLF", "true"),
+            ],
         ));
         let requests = fs::read_to_string(f.path("requests")).unwrap();
         assert!(requests.contains(&format!("https://example.com/tool-{arch}-{os}\n")));
-        assert!(requests.contains("release%2Fv1"));
+        assert!(requests.contains("release%2Fv1\n"));
+        assert!(!requests.contains('\r'));
         assert!(requests.contains("Authorization: Bearer test-token"));
     }
-    success(&f.install(&[
-        "--gh=owner/tool@v1",
-        "--asset-name=tool-aarch64-linux",
-        "--gh-token=override",
-    ]));
+    let dir = f.path("installed");
+    success(&f.run_with(
+        &[
+            "install",
+            "--dir",
+            dir.to_str().unwrap(),
+            "--gh=owner/tool@v1",
+            "--asset-name=tool-aarch64-linux",
+            "--gh-token=override",
+        ],
+        &[("JAS_JQ_CRLF", "true")],
+    ));
     assert!(fs::read_to_string(f.path("requests"))
         .unwrap()
         .contains("Bearer override"));
