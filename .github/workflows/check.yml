@@ -32,7 +32,7 @@ jobs:
       - run: cargo test --locked
       - name: Test macOS system Bash 3.2
         if: runner.os == 'macOS'
-        run: PATH="/bin:$PATH" cargo test --locked
+        run: JAS_TEST_BASH=/bin/bash PATH="/bin:$PATH" cargo test --locked
 
   lint:
     runs-on: ubuntu-latest

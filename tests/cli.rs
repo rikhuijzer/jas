@@ -5,6 +5,40 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use tempfile::TempDir;
 
+fn git_bash_from_exec_path(exec_path: &Path) -> Option<PathBuf> {
+    // Git for Windows may be installed anywhere. Walk up from its helper
+    // directory to find Bash in that same installation, never through PATH.
+    for directory in exec_path.ancestors() {
+        for relative in ["bin/bash.exe", "usr/bin/bash.exe"] {
+            let candidate = directory.join(relative);
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
+fn bash() -> Command {
+    if let Some(executable) = std::env::var_os("JAS_TEST_BASH") {
+        return Command::new(executable);
+    }
+    if cfg!(windows) {
+        // Resolving "bash" through Windows PATH can select the WSL launcher.
+        let output = Command::new("git")
+            .arg("--exec-path")
+            .output()
+            .expect("Install Git for Windows to run the tests");
+        assert!(output.status.success(), "git --exec-path failed");
+        let exec_path = String::from_utf8(output.stdout).expect("Invalid Git installation path");
+        let executable = git_bash_from_exec_path(Path::new(exec_path.trim()))
+            .expect("Git Bash not found; install Git for Windows or set JAS_TEST_BASH");
+        Command::new(executable)
+    } else {
+        Command::new("bash")
+    }
+}
+
 struct Fixture {
     root: TempDir,
     script: PathBuf,
@@ -62,7 +96,7 @@ fi
         self.root.path().join(name)
     }
     fn run_with(&self, args: &[&str], extra: &[(&str, &str)]) -> Output {
-        let mut cmd = Command::new("bash");
+        let mut cmd = bash();
         // Assemble POSIX PATH inside Bash, also on Windows. The wrapper is
         // test-only; the executable itself has no source mode or test hooks.
         cmd.args([
@@ -71,7 +105,7 @@ fi
 if command -v cygpath >/dev/null 2>&1; then JAS_MOCK=$(cygpath -u "$JAS_MOCK"); fi
 export JAS_REAL_UNAME=$(command -v uname)
 export PATH="$JAS_MOCK:${JAS_TEST_PATH:-$PATH}"
-exec bash "$@"
+exec "$BASH" "$@"
 "#,
             "test",
         ])
@@ -273,7 +307,7 @@ fn xz_archive() {
     let f = Fixture::new();
     fs::create_dir(f.path("nested")).unwrap();
     fs::write(f.path("nested/tool.sh"), "hello world").unwrap();
-    let out = Command::new("bash")
+    let out = bash()
         .args(["-c", "tar -cJf \"$1\" -C \"$2\" nested", "test"])
         .arg(f.path("payload"))
         .arg(f.root.path())
@@ -381,7 +415,8 @@ fn http_failure_is_fatal() {
         ],
         &[("JAS_DOWNLOAD_FAIL", "true")],
     );
-    assert!(!out.status.success());
+    assert_eq!(out.status.code(), Some(22));
+    assert!(f.path("requests").is_file());
     assert!(!dir.exists());
 }
 #[test]
@@ -500,7 +535,7 @@ fn zip_with_bsdtar_and_no_unzip() {
     for name in [
         "bash", "tar", "grep", "cp", "chmod", "mkdir", "mktemp", "rm", "uname",
     ] {
-        let path = Command::new("bash")
+        let path = bash()
             .args(["-c", "command -v \"$1\"", "test", name])
             .output()
             .unwrap();
@@ -552,4 +587,24 @@ fn temporary_files_are_removed_on_success_and_failure() {
         }
         assert_eq!(fs::read_dir(&scratch).unwrap().count(), 0);
     }
+}
+
+#[test]
+fn finds_git_bash_in_a_custom_installation() {
+    let root = tempfile::tempdir().unwrap();
+    let install = root.path().join("Custom Git Installation");
+    let exec_path = install.join("mingw64/libexec/git-core");
+    fs::create_dir_all(&exec_path).unwrap();
+    // A launcher elsewhere must not be selected, even if no Git Bash exists.
+    fs::write(root.path().join("bash.exe"), "WSL launcher").unwrap();
+    assert!(git_bash_from_exec_path(&exec_path).is_none());
+    let bash_path = install.join("usr/bin/bash.exe");
+    fs::create_dir_all(bash_path.parent().unwrap()).unwrap();
+    fs::write(&bash_path, "Git Bash").unwrap();
+    assert_eq!(git_bash_from_exec_path(&exec_path), Some(bash_path));
+    // Git's bin launcher is supported too, including portable installations.
+    let launcher = install.join("bin/bash.exe");
+    fs::create_dir_all(launcher.parent().unwrap()).unwrap();
+    fs::write(&launcher, "Git Bash launcher").unwrap();
+    assert_eq!(git_bash_from_exec_path(&exec_path), Some(launcher));
 }

@@ -128,6 +128,11 @@ output names, platform selection, unsafe paths, and CLI validation. CI runs the
 harness on x64 and ARM64 Linux, macOS, and Windows, and also checks macOS Bash
 3.2. Run `shellcheck jas` and `cargo fmt --all -- --check` for linting.
 
+On Windows, the harness locates Git Bash through the Git installation, so
+`cargo test --locked` works without extra setup. Git for Windows must be installed.
+`JAS_TEST_BASH` is an optional override for selecting a specific Bash executable,
+for example `JAS_TEST_BASH=/bin/bash cargo test --locked` on macOS or Linux.
+
 ## Background
 
 This tool is primarily intended to be used in CI as a workaround for GitHub Actions's poor security guarantees.
