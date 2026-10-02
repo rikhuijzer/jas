@@ -1,26 +1,17 @@
 # jas
 
-Just an installer.
+Just an installer for CI.
 
-This tool is meant to be used in situations where you want to install a script or binary in a reliable way, that is, you want to specify the SHA-256 checksum so that you can be sure that you are executing the thing you expected.
+jas installs scripts and binaries in CI, verifying a pinned SHA-256 checksum
+so that you can be sure you are executing the file you expected.
 I wrote this tool in response to yet another GitHub Action supply chain attack.
 See the [Background](#background) section for more details.
 
-## Installation
-
-Download `jas` from a release (or copy it from this repository), then:
-
-```bash
-mkdir -p "$HOME/.local/bin"
-cp jas "$HOME/.local/bin/jas"
-chmod +x "$HOME/.local/bin/jas"
-export PATH="$HOME/.local/bin:$HOME/.jas/bin:$PATH"
-jas --help
-```
+## Runner requirements
 
 The installer is one standalone Bash file; it does not require Rust, Python, or
 Node.js. It supports Bash 3.2 or newer, including macOS's system Bash and Git
-Bash on Windows. On Windows, run it in Git Bash or with `bash jas ...`.
+Bash on Windows runners.
 
 Dependencies are `curl`, `tar`, ordinary Unix utilities, and either `sha256sum`
 or `shasum`. GitHub release lookup (`--gh`) also requires `jq`; ZIP extraction
@@ -56,8 +47,7 @@ jas sha \
 ## Usage in GitHub Actions
 
 Install jas from the [v0.4.0 release](https://github.com/rikhuijzer/jas/releases/tag/v0.4.0)
-using one of the steps below. Use `shell: bash` for installation and subsequent
-jas commands.
+using one of the steps below.
 The download URLs below will be available once v0.4.0 is published.
 
 ### Linux runners
